@@ -1,6 +1,6 @@
 # PAStar memory predictor
 
-This repository contains a set of scripts to test and predict the memory usage of the PAStar program
+This repository contains a set of scripts to test and predict the memory usage of the PAStar program.
 
 ## Requirements
 
@@ -8,6 +8,7 @@ This repository contains a set of scripts to test and predict the memory usage o
 
 ## Usage
 
+NOT READY
 
 ## Structure
 
@@ -18,3 +19,4 @@ This repository contains a set of scripts to test and predict the memory usage o
 
 ## PAStar repository
 
+Link: https://github.com/danielsundfeld/astar_msa
