@@ -62,6 +62,16 @@ class TestMethods(unittest.TestCase):
         # Echo adds more chars
         self.assertEqual(command_result['stdout'].replace('\'','').replace('b','').replace('\\n','').strip(), output)
 
+    def test_execute_program_check_large_output(self):
+        output = "hello from my output!"*1000
+        command_result = execution_supervisor.execute_pastar(["/usr/bin/echo", output])
+
+    def test_execute_program_check_timeout(self):
+        command_result = execution_supervisor.execute_pastar(["/usr/bin/sleep", "1000"])
+
+        # Echo adds more chars
+        self.assertEqual(command_result['stdout'].replace('\'','').replace('b','').replace('\\n','').strip(), '')
+
     def test_execute_program_node_info(self):
         #input = execution_supervisor.execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", "../PAStar/astar_msa/seqs/3/synthetic_easy.fasta"])['stdout']
 

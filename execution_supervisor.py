@@ -37,6 +37,10 @@ def execute_pastar(command: [str]):
     try:
         pastar_output = subprocess.check_output(command, shell=False, timeout=10)
 
+    #except subprocess.TimeoutExpired:
+    #    if (len(pastar_output) == 0):
+    #        error_code = 1
+
     # Error code
     except subprocess.CalledProcessError as e:
         # Change in case of errors
@@ -63,10 +67,10 @@ def pastar_get_node_info(pastar_output: str):
 def main():
 
     seq_dictionary =['A', 'T', 'C', 'G']
-    initial_seq_size = 10
-    seq_size_step = 2
+    initial_seq_size = 1000
+    seq_size_step = 100
     unique_samples_per_size = 1000
-    max_samples = 10000
+    max_samples = 1000
     samples_per_execution = 3
 
     # Create OR load sequence database
@@ -89,8 +93,8 @@ def main():
             node_info = pastar_get_node_info(result['stdout'])
 
             worst_case = len(test_input[0]) ** len(test_input)
-            ratio = math.ceil((node_info['Total']/worst_case)*100)
-            print(f"Nodes searched: { node_info['Total'] } -- Worst case {worst_case} -- Ratio {ratio}% -- Input: {test_input} -- Exit code: {result['exit_code']}")
+            ratio = (node_info['Total']/worst_case)*100
+            print(f"Nodes searched: { node_info['Total'] } -- Worst case {worst_case} -- Ratio {'{:.2f}'.format(ratio)}% -- Input size: {len(test_input[0])} -- Exit code: {result['exit_code']}")
 
             # VmPeak and RSS might be added later
 
