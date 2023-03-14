@@ -1,7 +1,8 @@
 import os
 import subprocess
-from collections import namedtuple
-
+import math
+import sequence_formatter
+import random_sequence_generator
 
 
 # This class exists to perform automatic cleanup using the 'with' keyword
@@ -34,7 +35,7 @@ def execute_pastar(command: [str]):
     pastar_output = ''
 
     try:
-        pastar_output = subprocess.check_output(command)
+        pastar_output = subprocess.check_output(command, shell=False, timeout=10)
 
     # Error code
     except subprocess.CalledProcessError as e:
@@ -63,10 +64,10 @@ def main():
 
     seq_dictionary =['A', 'T', 'C', 'G']
     initial_seq_size = 10
-    seq_size_step = 5
-    unique_samples_per_size = 2
-    max_samples = 10
-    samples_per_execution = 2
+    seq_size_step = 2
+    unique_samples_per_size = 1000
+    max_samples = 10000
+    samples_per_execution = 3
 
     # Create OR load sequence database
     for test_input in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
@@ -74,16 +75,22 @@ def main():
         # Build input
         tmp_file_path = "/tmp/pastar_input.fasta"
 
-        with execution_supervisor.TmpFile(tmp_file_path) as tmp_file
-            clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file)
+        with TmpFile(tmp_file_path) as tmp_file:
+            clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file.write_handle)
 
             ## Execute PAStar and collect metrics from program's exit
-            result = execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", tmp_file_path])
+            try:
+                result = execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", tmp_file_path])
+
+            except subprocess.TimeoutExpired as e:
+                print(f"Result: {result['stdout']} \n Error: Timeout: \n Input: {test_input}")
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])
 
-            print(f"Nodes searched: { node_info['Total'] }")
+            worst_case = len(test_input[0]) ** len(test_input)
+            ratio = math.ceil((node_info['Total']/worst_case)*100)
+            print(f"Nodes searched: { node_info['Total'] } -- Worst case {worst_case} -- Ratio {ratio}% -- Input: {test_input} -- Exit code: {result['exit_code']}")
 
             # VmPeak and RSS might be added later
 
