@@ -57,14 +57,12 @@ def pastar_get_node_info(pastar_output: str):
         key_value = info.split(": ")
         node_info.update( {key_value[0]: int(key_value[1])} )
 
-
     return node_info
 
 def main():
     # Create OR load sequence database
 
     # Build input
-
     tmp_file = TmpFile("/tmp/pastar_input.fasta") # /tmp is expected to be a tmpfs mount
 
     #clear_and_replace("fasta_input", file)
@@ -72,14 +70,12 @@ def main():
     ## Execute PAStar and collect metrics from program's exit
     result = execute_pastar(["/usr/bin/cat", "/tmp/pastar_input.fasta"])
 
-
     # Node info (max)
     node_info = pastar_get_node_info(result['stdout'])
 
     # VmPeak and RSS might be added later
 
-
-    # Save results in a specific format
+    # Save results in a specific format -> might use pickle or feather
 
 if __name__ == '__main__':
     main()
