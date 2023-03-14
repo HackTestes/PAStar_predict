@@ -114,10 +114,33 @@ class TestMethods(unittest.TestCase):
         seq_size_step = 5
         unique_samples_per_size = 2
         max_samples = 10
+        samples_per_execution = 2
 
-        random_sequence_generator.seq_random_execution_unit(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, 2, print)
+        results = []
+        for test in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
 
-        self.assertTrue(False)
+            # Check for samples per execution
+            self.assertEqual(len(test), samples_per_execution)
+
+            # Check if samples have equal size
+            for seq in test:
+                self.assertEqual(len(seq), len(test[0])) # Test if are are equal to the first seq
+
+            results.append(test)
+
+        # Check total size
+        self.assertEqual(len(results), max_samples)
+
+        # Check sequence size step
+        target_size = initial_seq_size
+        for sample_idx in range( max_samples ):
+
+            if (sample_idx != 0 and sample_idx % unique_samples_per_size == 0):
+                target_size += seq_size_step
+
+            # Since all sequences have the same size, only the first one is necessary
+            self.assertEqual(len(results[ sample_idx ][0]), target_size)
+
 
     def test_execute_program_save_data(self):
         pass
