@@ -60,22 +60,34 @@ def pastar_get_node_info(pastar_output: str):
     return node_info
 
 def main():
+
+    seq_dictionary =['A', 'T', 'C', 'G']
+    initial_seq_size = 10
+    seq_size_step = 5
+    unique_samples_per_size = 2
+    max_samples = 10
+    samples_per_execution = 2
+
     # Create OR load sequence database
+    for test_input in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
 
-    # Build input
-    tmp_file = TmpFile("/tmp/pastar_input.fasta") # /tmp is expected to be a tmpfs mount
+        # Build input
+        tmp_file_path = "/tmp/pastar_input.fasta"
 
-    #clear_and_replace("fasta_input", file)
+        with execution_supervisor.TmpFile(tmp_file_path) as tmp_file
+            clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file)
 
-    ## Execute PAStar and collect metrics from program's exit
-    result = execute_pastar(["/usr/bin/cat", "/tmp/pastar_input.fasta"])
+            ## Execute PAStar and collect metrics from program's exit
+            result = execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", tmp_file_path])
 
-    # Node info (max)
-    node_info = pastar_get_node_info(result['stdout'])
+            # Node info (max)
+            node_info = pastar_get_node_info(result['stdout'])
 
-    # VmPeak and RSS might be added later
+            print(f"Nodes searched: { node_info['Total'] }")
 
-    # Save results in a specific format -> might use pickle or feather
+            # VmPeak and RSS might be added later
+
+            # Save results in a specific format -> might use pickle or feather
 
 if __name__ == '__main__':
     main()
