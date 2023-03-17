@@ -16,19 +16,19 @@ Make sure that all the packages are compatible, since different versions may cau
 ## Usage
 
 Run tests
-'''
+```
 python3 -m unittest -v unit_tests.py -b
-'''
+```
 
 Run the main program
-'''
+```
 python3 ./execution_supervisor.py
-'''
+```
 
 Build the graphs (**the root of the project must be the working dir**)
-'''
+```
 python3 ./graphs/graphs.py
-'''
+```
 
 Configuration: modify the *configuration.py* file
 
