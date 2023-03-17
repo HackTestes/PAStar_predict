@@ -1,5 +1,8 @@
 import random
 import sys
+import pandas as pd
+import gzip
+import configuration
 
 ## Letters that represent amino acids
 #seq_dictionary =['A', 'T', 'C', 'G']
@@ -63,23 +66,23 @@ def seq_random_gen(seq_dictionary: [str], current_seq_size: int, seq_size_steps:
 # Action: execute PAStar
 #
 # This should generate a small sequence list per execition
-def seq_random_execution_unit(seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, action ):
-
-    # This captures the exit of the "action", this is to help testing
-    debug_exit = []
-
-    # Remainder must be 0
-    if (max_samples%samples_per_size != 0):
-        raise Exception('Remainder must be 0 between max samples and unique seqences')
-
-    # Calculate random samples util the max amount is reached
-    for sample_bucket_idx in range( int(max_samples/samples_per_size) ):
-        for sample_idx in range( samples_per_size ):
-            action( random_seq_list(seq_dictionary, seq_size, seq_per_execution), debug_exit )
-
-        seq_size += seq_size_step
-
-    return debug_exit
+#def seq_random_execution_unit(seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, action ):
+#
+#    # This captures the exit of the "action", this is to help testing
+#    debug_exit = []
+#
+#    # Remainder must be 0
+#    if (max_samples%samples_per_size != 0):
+#        raise Exception('Remainder must be 0 between max samples and unique seqences')
+#
+#    # Calculate random samples util the max amount is reached
+#    for sample_bucket_idx in range( int(max_samples/samples_per_size) ):
+#        for sample_idx in range( samples_per_size ):
+#            action( random_seq_list(seq_dictionary, seq_size, seq_per_execution), debug_exit )
+#
+#        seq_size += seq_size_step
+#
+#    return debug_exit
 
 class ExecutionPolicy_EqualSizeSeq:
 
@@ -115,3 +118,43 @@ class ExecutionPolicy_EqualSizeSeq:
 
         return random_seq_list(self.dict, self.seq_size, self.seq_per_execution)
 
+def file_open(path: str):
+    with open(path, 'r', encoding='utf-8') as file:
+        return file.read()
+
+class ExecutionPolicy_ReadyDatabase:
+
+    def __init__(self, seq_database_path: str, database_reader = file_open):
+        
+        self.seq_database = database_reader(seq_database_path).split("\n")
+
+        # Remove empty last cell
+        if(len(self.seq_database[-1]) == 0):
+            self.seq_database.pop()
+
+        # Initial state
+        self.current_sample = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if (self.current_sample == len(self.seq_database)):
+            raise StopIteration
+
+        sample = self.seq_database[self.current_sample].split("-")
+
+        self.current_sample += 1
+
+        return sample
+
+def load_execution_policy(execution_policy: str, database_reader = file_open):
+
+    match execution_policy:
+
+        case 'load_database':
+            return ExecutionPolicy_ReadyDatabase(configuration.seq_database_path, database_reader)
+        case 'seq_random_equal_size':
+            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution)
+        case _:
+            raise Exception('Invalid execution poilicy')

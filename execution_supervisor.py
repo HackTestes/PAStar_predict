@@ -1,6 +1,8 @@
 import os
 import subprocess
 import math
+import pandas as pd
+import configuration
 import sequence_formatter
 import random_sequence_generator
 
@@ -35,11 +37,12 @@ def execute_pastar(command: [str]):
     pastar_output = ''
 
     try:
-        pastar_output = subprocess.check_output(command, shell=False, timeout=10)
+        pastar_output = subprocess.check_output(command, shell=False, timeout=configuration.timeout)
 
-    #except subprocess.TimeoutExpired:
-    #    if (len(pastar_output) == 0):
-    #        error_code = 1
+    except subprocess.TimeoutExpired:
+        #if (len(pastar_output) == 0):
+        error_code = 1
+        print(f'Timeout Error')
 
     # Error code
     except subprocess.CalledProcessError as e:
@@ -66,39 +69,56 @@ def pastar_get_node_info(pastar_output: str):
 
 def main():
 
-    seq_dictionary =['A', 'T', 'C', 'G']
-    initial_seq_size = 1000
-    seq_size_step = 100
-    unique_samples_per_size = 1000
-    max_samples = 1000
-    samples_per_execution = 3
+    results = pd.DataFrame(dict(Nodes= [], Seq_qtd=[], Seq_size=[]))
+    seq_input = []
 
     # Create OR load sequence database
-    for test_input in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
+    LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
+
+    # Loop over the database and execute the command
+    for test_input in LoopGenerator:
 
         # Build input
         tmp_file_path = "/tmp/pastar_input.fasta"
+        tries: int = 0
+        exit_code:int = 1
 
         with TmpFile(tmp_file_path) as tmp_file:
             clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file.write_handle)
 
-            ## Execute PAStar and collect metrics from program's exit
-            try:
+            # Keep trying in case of erros until you hit the limit
+            while(exit_code != 0 or tries < configuration.tries_per_execution):
+                # Execute PAStar and collect metrics from program's exit
                 result = execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", tmp_file_path])
-
-            except subprocess.TimeoutExpired as e:
-                print(f"Result: {result['stdout']} \n Error: Timeout: \n Input: {test_input}")
+                exit_code = result['exit_code']
+                tries += 1
+            
+            # There is no need to store faulty executions
+            if(exit_code != 0):
+                continue
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])
 
+            # THis is just to visualize the execution
             worst_case = len(test_input[0]) ** len(test_input)
             ratio = (node_info['Total']/worst_case)*100
-            print(f"Nodes searched: { node_info['Total'] } -- Worst case {worst_case} -- Ratio {'{:.2f}'.format(ratio)}% -- Input size: {len(test_input[0])} -- Exit code: {result['exit_code']}")
+            print(f"Nodes searched: { node_info['Total'] } \tWorst case {worst_case} \tRatio {'{:.4f}'.format(ratio)}% \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']}")
 
+            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info['Total']], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])])) ], ignore_index=True)
+            seq_input.append('-'.join(test_input))
             # VmPeak and RSS might be added later
 
-            # Save results in a specific format -> might use pickle or feather
+    # Save results in a specific format -> might use pickle or feather
+    print(results)
+
+    confirmation = input("Do you want to write to the file?\n")
+
+    if(confirmation == "y"):
+        results.to_feather("./data/seq.feather")
+
+        with open(configuration.seq_database_path, 'w') as file:
+            file.write( '\n'.join(seq_input) )
 
 if __name__ == '__main__':
     main()

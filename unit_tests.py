@@ -1,5 +1,6 @@
 import os
 import unittest
+import configuration
 import sequence_formatter
 import execution_supervisor
 import random_sequence_generator
@@ -67,10 +68,11 @@ class TestMethods(unittest.TestCase):
         command_result = execution_supervisor.execute_pastar(["/usr/bin/echo", output])
 
     def test_execute_program_check_timeout(self):
+        configuration.timeout = 0.1
         command_result = execution_supervisor.execute_pastar(["/usr/bin/sleep", "1000"])
 
-        # Echo adds more chars
         self.assertEqual(command_result['stdout'].replace('\'','').replace('b','').replace('\\n','').strip(), '')
+        self.assertEqual(command_result['exit_code'], 1)
 
     def test_execute_program_node_info(self):
         #input = execution_supervisor.execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", "../PAStar/astar_msa/seqs/3/synthetic_easy.fasta"])['stdout']
@@ -151,9 +153,12 @@ class TestMethods(unittest.TestCase):
             # Since all sequences have the same size, only the first one is necessary
             self.assertEqual(len(results[ sample_idx ][0]), target_size)
 
+    def test_load_execution_policy(self):
+        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('seq_random_equal_size'), random_sequence_generator.ExecutionPolicy_EqualSizeSeq))
+        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n'), random_sequence_generator.ExecutionPolicy_ReadyDatabase))
 
-    def test_execute_program_save_data(self):
-        pass
+    def test_load_seq_database(self):
+        print(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n').seq_database)
 
 if __name__ == '__main__':
     unittest.main()
