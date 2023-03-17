@@ -117,8 +117,10 @@ def main():
     if(confirmation == "y"):
         results.to_feather("./data/seq.feather")
 
-        with open(configuration.seq_database_path, 'w') as file:
-            file.write( '\n'.join(seq_input) )
+        # Do NOT overwrite the original database
+        if(configuration.execution_policy != 'load_database'):
+            with open(configuration.seq_database_path, 'w') as file:
+                file.write( '\n'.join(seq_input) )
 
 if __name__ == '__main__':
     main()
