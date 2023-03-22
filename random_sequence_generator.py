@@ -135,6 +135,8 @@ class ExecutionPolicy_ReadyDatabase:
         # Initial state
         self.current_sample = 0
 
+        print('Database loaded')
+
     def __iter__(self):
         return self
 

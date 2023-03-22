@@ -31,13 +31,15 @@ def clear_and_replace(new_input: str, file_handle):
     file_handle.flush() # Garantees that the file will have it at read
 
 
-def execute_pastar(command: [str]):
+def execute_pastar(command: [str], seq_size):
     # Assume at first that the execution was successful
     error_code: int = 0
     pastar_output = ''
 
+    current_timeout = configuration.timeout + (configuration.timeout_time_per_step * math.floor(seq_size / configuration.timeout_extension_step_size))
+
     try:
-        pastar_output = subprocess.check_output(command, shell=False, timeout=configuration.timeout)
+        pastar_output = subprocess.check_output(command, shell=False, timeout=current_timeout)
 
     except subprocess.TimeoutExpired:
         #if (len(pastar_output) == 0):
@@ -67,7 +69,27 @@ def pastar_get_node_info(pastar_output: str):
 
     return node_info
 
+def ask_for_confirmation(bypass: bool):
+    if bypass != True:
+        confirmation = input("Do you want to write to the file?\n")
+        return confirmation == 'y'
+
+    return True
+
+def update_timeout(tries):
+    if(tries > 1):
+        configuration.timeout += configuration.failure_time_extension
+
 def main():
+
+    print(f'Seq-> Max size: {configuration.max_size} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per step: {configuration.unique_samples_per_size}\n')
+    print(f'Command:{configuration.command} \nDatabase: {configuration.seq_database_name} \nResults file: {configuration.result_path}\n')
+    print(f'Execution policy: {configuration.execution_policy}')
+
+    confirmation = input("\nDo you want to continue(y)?\n")
+
+    if(confirmation != "y"):
+        quit()
 
     results = pd.DataFrame(dict(Nodes= [], Seq_qtd=[], Seq_size=[]))
     seq_input = []
@@ -87,23 +109,25 @@ def main():
             clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file.write_handle)
 
             # Keep trying in case of erros until you hit the limit
-            while(exit_code != 0 or tries < configuration.tries_per_execution):
+            while(exit_code != 0 and tries < configuration.tries_per_execution):
                 # Execute PAStar and collect metrics from program's exit
-                result = execute_pastar(["../PAStar/astar_msa/bin/msa_pastar", "-t", "24", tmp_file_path])
+                result = execute_pastar(configuration.command+[tmp_file_path], len(test_input[0]))
                 exit_code = result['exit_code']
                 tries += 1
-            
+                update_timeout(tries)
+
             # There is no need to store faulty executions
             if(exit_code != 0):
+                print('FAILED EXECUTION')
                 continue
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])
 
-            # THis is just to visualize the execution
+            # This is just to visualize the execution
             worst_case = len(test_input[0]) ** len(test_input)
             ratio = (node_info['Total']/worst_case)*100
-            print(f"Nodes searched: { node_info['Total'] } \tWorst case {worst_case} \tRatio {'{:.4f}'.format(ratio)}% \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']}")
+            print(f"Nodes searched: { node_info['Total'] } \tRatio {'{:.4f}'.format(ratio)}% \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
             results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info['Total']], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
@@ -112,15 +136,15 @@ def main():
     # Save results in a specific format -> might use pickle or feather
     print(results)
 
-    confirmation = input("Do you want to write to the file?\n")
-
-    if(confirmation == "y"):
-        results.to_feather("./data/seq.feather")
+    if(ask_for_confirmation(configuration.write_to_file_without_asking)):
+        results.to_feather(configuration.result_path)
+        print('RESULTS SAVED!')
 
         # Do NOT overwrite the original database
         if(configuration.execution_policy != 'load_database'):
             with open(configuration.seq_database_path, 'w') as file:
                 file.write( '\n'.join(seq_input) )
+                print('DATABASE SAVED!')
 
 if __name__ == '__main__':
     main()
