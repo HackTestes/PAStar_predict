@@ -5,6 +5,9 @@ import sequence_formatter
 import execution_supervisor
 import random_sequence_generator
 
+sample_pastar_input = 'b\'Starting pairwise alignments... done!\\nPhase 1 - init heuristic: 00:00.004 s\\nPerforming search with Parallel A-Star (v1.1-48-gece4f08)\\nRunning PA-Star with: 24 threads, Full-Zorder hash, 12 shift.\\nPhase 2: PA-Star running time: 00:01.041 s\\nFinal Score: (231 416 363)\\tg - 26109 (h - 0 f - 26109)\\nSimilarity: 21.55%\\n\\nAAAAA-------------------------AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA-AAA-A---AAA----AAAAAA-------AA-AA--A-------AA-A-A------A-A-----A-A--AAA-A--A-A---A-A----AA-A-A-A------AA-AA-A----------A------A-VL-S--PA--DK--TN-VKAAWGKV--G-AHA-GE-Y--GAEA-L---ER-MFL-------S-FPT-TK---T-YF-----------------PH-----FD-LSH--GSAQVKG-HG-------KK-VADALTN--AVAHVDDMPNA-LSALSDLHAHKLRVDPVNF-KLLSHCLLVTLAAHLPAEFTPAVHASLDKFLASVSTVLTSKYR------\\nAAAAAPPPPPPPPPPPPPPPPPPPPPPPPPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPPPPPPPPEKSAVTALPPPPPPPPPPPPPPVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSDGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYHDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDPPPPPAAAAAAAAADDDDDAAADDDDAPPPPADDDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\\nDDDDDDDDDDDDDDDDDDDDDDDDDD----DDDDDDDDDDDDDDDDDDDDDDDDDDDDDPPPPPAAAAAAAAADDDDDAAADDDDAPPPPAD---DDAAAAAAA-AAAAAAAAAAAAAAAAAAA-A-AAA--AA-AAAAAAAAAAAAAAAAAAAAAAAAA-AAAAAAAAAAAAA-AAAAAAAAAAAAAAAAA----AAAVASA-PA--DK--TN-VKAAWGKV--G-AHA-GE-Y-AAAAAGLSDGEWQLVLNVWGKVEADIPGHGQEVLIRLFKGH--------------PETL-EKFDKFKHLKSEDEMKASED-L-----KKHGATVLTALGGILKKKGHHEAEIKPLAQSHATKHKI-PVKYLEFISECIIQVLQSKHPGDFGADAQGAMNKALELFRKDMASNYKELGFQG\\nPhase 3 - backtrace: 00:00.000 s\\nTotal nodes count:\\ntid 0\\tOpenList: 6154\\tClosedList: 156147\\tReopen: 112972\\tTotal: 275273\\t(Open Rewrite: 209121)\\ntid 1\\tOpenList: 7282\\tClosedList: 147782\\tReopen: 118378\\tTotal: 273442\\t(Open Rewrite: 206790)\\ntid 2\\tOpenList: 4351\\tClosedList: 164246\\tReopen: 100076\\tTotal: 268673\\t(Open Rewrite: 188405)\\ntid 3\\tOpenList: 2405\\tClosedList: 169479\\tReopen: 81660\\tTotal: 253544\\t(Open Rewrite: 180729)\\ntid 4\\tOpenList: 13738\\tClosedList: 153931\\tReopen: 88726\\tTotal: 256395\\t(Open Rewrite: 210261)\\ntid 5\\tOpenList: 15516\\tClosedList: 143007\\tReopen: 126583\\tTotal: 285106\\t(Open Rewrite: 207173)\\ntid 6\\tOpenList: 6223\\tClosedList: 155514\\tReopen: 128550\\tTotal: 290287\\t(Open Rewrite: 192958)\\ntid 7\\tOpenList: 5934\\tClosedList: 148754\\tReopen: 134697\\tTotal: 289385\\t(Open Rewrite: 192661)\\ntid 8\\tOpenList: 6579\\tClosedList: 150018\\tReopen: 151311\\tTotal: 307908\\t(Open Rewrite: 214062)\\ntid 9\\tOpenList: 7054\\tClosedList: 140730\\tReopen: 162032\\tTotal: 309816\\t(Open Rewrite: 189486)\\ntid 10\\tOpenList: 5991\\tClosedList: 152300\\tReopen: 129359\\tTotal: 287650\\t(Open Rewrite: 202935)\\ntid 11\\tOpenList: 2806\\tClosedList: 164284\\tReopen: 151472\\tTotal: 318562\\t(Open Rewrite: 184219)\\ntid 12\\tOpenList: 11326\\tClosedList: 148646\\tReopen: 117699\\tTotal: 277671\\t(Open Rewrite: 211667)\\ntid 13\\tOpenList: 11514\\tClosedList: 136167\\tReopen: 149258\\tTotal: 296939\\t(Open Rewrite: 196005)\\ntid 14\\tOpenList: 6896\\tClosedList: 148954\\tReopen: 127576\\tTotal: 283426\\t(Open Rewrite: 199988)\\ntid 15\\tOpenList: 6097\\tClosedList: 136981\\tReopen: 154024\\tTotal: 297102\\t(Open Rewrite: 179180)\\ntid 16\\tOpenList: 4048\\tClosedList: 118174\\tReopen: 190712\\tTotal: 312934\\t(Open Rewrite: 169983)\\ntid 17\\tOpenList: 1673\\tClosedList: 116270\\tReopen: 183714\\tTotal: 301657\\t(Open Rewrite: 122775)\\ntid 18\\tOpenList: 18234\\tClosedList: 107677\\tReopen: 173540\\tTotal: 299451\\t(Open Rewrite: 181963)\\ntid 19\\tOpenList: 10061\\tClosedList: 105781\\tReopen: 197194\\tTotal: 313036\\t(Open Rewrite: 176922)\\ntid 20\\tOpenList: 0\\tClosedList: 96881\\tReopen: 149661\\tTotal: 246542\\t(Open Rewrite: 136211)\\ntid 21\\tOpenList: 365\\tClosedList: 96393\\tReopen: 97821\\tTotal: 194579\\t(Open Rewrite: 129997)\\ntid 22\\tOpenList: 7782\\tClosedList: 115307\\tReopen: 218604\\tTotal: 341693\\t(Open Rewrite: 175135)\\ntid 23\\tOpenList: 7066\\tClosedList: 114724\\tReopen: 194019\\tTotal: 315809\\t(Open Rewrite: 193295)\\nSum\\tOpenList: 169095\\tClosedList: 3288147\\tReopen: 3439638\\tTotal: 6896880\\t(Open Rewrite: 4451921)\\n\''
+
+
 class TestMethods(unittest.TestCase):
 
     def test_sequence_formtting(self):
@@ -84,6 +87,30 @@ class TestMethods(unittest.TestCase):
 
         self.assertEqual(list(node_info.keys()), ['OpenList', 'ClosedList', 'Reopen', 'Total', 'Open Rewrite']) # Comapare the keys when you execute PAStar, since the node qtd can change
         self.assertEqual(node_info, {'OpenList': 169095, 'ClosedList': 3288147, 'Reopen': 3439638, 'Total': 6896880, 'Open Rewrite': 4451921}) # Pre-made input can check for type info as well
+
+    def test_execute_program_similarity_info(self):
+        result = execution_supervisor.pastar_get_seq_similarity(sample_pastar_input)
+        self.assertEqual(result, "21.55%")
+
+    def test_execute_program_time_info(self):
+        result = execution_supervisor.pastar_get_execution_time(sample_pastar_input)
+        self.assertEqual(result, "00:01.041s")
+
+    def test_execute_program_heuristic_time_info(self):
+        result = execution_supervisor.pastar_get_execution_time_heuristic(sample_pastar_input)
+        self.assertEqual(result, "00:00.004s")
+
+    def test_execute_program_version_info(self):
+        result = execution_supervisor.pastar_get_version(sample_pastar_input)
+        self.assertEqual(result, "v1.1-48-gece4f08")
+
+    def test_execute_program_score_info(self):
+        result = execution_supervisor.pastar_get_score(sample_pastar_input)
+        self.assertEqual(result, "231 416 363")
+
+    def test_execute_program_misc_info(self):
+        result = execution_supervisor.pastar_get_misc(sample_pastar_input)
+        self.assertEqual(result, "g - 26109 h - 0 f - 26109")
 
     def test_random_sequence(self):
 

@@ -2,11 +2,11 @@
 # Also, this centralizes all the configuration
 
 seq_dictionary =['A', 'T', 'C', 'G']
-initial_seq_size = 50
+initial_seq_size = 2000
 seq_size_step = 50
-unique_samples_per_size = 40
-max_samples = 400
-samples_per_execution = 5
+unique_samples_per_size = 10
+max_samples = 10
+samples_per_execution = 3
 
 max_size = initial_seq_size + ((max_samples/unique_samples_per_size-1) * seq_size_step)
 
@@ -18,7 +18,7 @@ size_between_execution_sequences = 'equal'
 # If you have a database of sequences to execute, set this to 'load_database'
 # seq_random_equal_size
 # load_database
-execution_policy = 'load_database'
+execution_policy = 'seq_random_equal_size'
 seq_database_name = f'SeqDatabase-MaxSize_{max_size}-Seq_{samples_per_execution}-SizeSample_{unique_samples_per_size}-Step_{seq_size_step}-Samples_{max_samples}'
 seq_database_path = f"./sequences/{seq_database_name}"
 
@@ -32,9 +32,9 @@ failure_time_extension = 5
 tries_per_execution = 10
 
 # Command
-threads = '1'
+threads = '16'
 command = ["../PAStar/astar_msa/bin/msa_pastar", "-t", threads]
 
 # Results
-write_to_file_without_asking = True
+write_to_file_without_asking = False
 result_path = f'./data/SeqResults-{seq_database_name}-threads_{threads}.feather'
