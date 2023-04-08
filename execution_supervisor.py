@@ -208,6 +208,8 @@ def main():
             seq_input.append('-'.join(test_input))
             # VmPeak and RSS might be added later
 
+        # Save results in the disk and clear what is in memory (append)
+
     # Save results in a specific format -> might use pickle or feather
     print(results)
 
