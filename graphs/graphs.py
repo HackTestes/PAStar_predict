@@ -96,7 +96,7 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
     # Build the right graph type
     match graph_type:
         case 'box':
-            fig = px.box(y=y_input, x=x_input, color=color)
+            fig = px.box(y=y_input, x=x_input, color=color, points=False)
         case 'scatter':
             fig = px.scatter(y=y_input, x=x_input, color=color)
         case _:

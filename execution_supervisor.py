@@ -5,6 +5,7 @@ import pandas as pd
 import configuration
 import sequence_formatter
 import random_sequence_generator
+import restore_execution
 
 
 # This class exists to perform automatic cleanup using the 'with' keyword
@@ -145,6 +146,7 @@ def main():
     print(f'Seq-> Max size: {configuration.max_size} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per step: {configuration.unique_samples_per_size}\n')
     print(f'Command:{configuration.command} \nDatabase: {configuration.seq_database_name} \nResults file: {configuration.result_path}\n')
     print(f'Execution policy: {configuration.execution_policy}')
+    print(f'Restore execution: {configuration.restore_execution}')
 
     confirmation = input("\nDo you want to continue(y)?\n")
 
@@ -153,6 +155,10 @@ def main():
 
     results = pd.DataFrame(dict(Nodes= [], Seq_qtd=[], Seq_size=[], Execution_time=[], Heuristic_time=[], Similarity=[], Score=[], Misc=[]))
     seq_input = []
+
+    # Restore execution before loading the excution policies
+    if configuration.restore_execution == True:
+        restore_execution.restore_execution()
 
     # Create OR load sequence database
     LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
@@ -209,12 +215,30 @@ def main():
             # VmPeak and RSS might be added later
 
         # Save results in the disk and clear what is in memory (append)
+        if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
+            results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False)
+            results.drop(results.index, inplace=True)
+            print('RESULTS SAVED!')
 
-    # Save results in a specific format -> might use pickle or feather
+            # Do NOT write in the original database
+            if(configuration.execution_policy != 'load_database'):
+                with open(configuration.seq_database_path, 'a') as file:
+
+                    if len(seq_input) != 1:
+                        file.write( '\n'.join(seq_input) )
+                    else:
+                        file.write(seq_input[0] + "\n")
+
+                    seq_input.clear()
+                    print('DATABASE SAVED!')
+
+
+    # Save results in a specific format
     print(results)
 
-    if(ask_for_confirmation(configuration.write_to_file_without_asking)):
-        results.to_feather(configuration.result_path)
+    if(ask_for_confirmation(configuration.write_to_file_without_asking) and append_results == False):
+        #results.to_feather(configuration.result_path)
+        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False)
         print('RESULTS SAVED!')
 
         # Do NOT overwrite the original database

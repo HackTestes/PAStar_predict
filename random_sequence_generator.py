@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 import gzip
 import configuration
+import math
 
 ## Letters that represent amino acids
 #seq_dictionary =['A', 'T', 'C', 'G']
@@ -84,9 +85,10 @@ def seq_random_gen(seq_dictionary: [str], current_seq_size: int, seq_size_steps:
 #
 #    return debug_exit
 
+# Generate multiple sequences of the same size with random letters from the dictionary (DNA, RNA...)
 class ExecutionPolicy_EqualSizeSeq:
 
-    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int):
+    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, current_sample_idx: int = 0):
         # Remainder must be 0
         if (max_samples%samples_per_size != 0):
             raise Exception('Remainder must be 0 between max samples and unique seqences')
@@ -94,46 +96,61 @@ class ExecutionPolicy_EqualSizeSeq:
         # Configuration
         self.dict = seq_dictionary
         self.seq_size = seq_size
+        self.initial_size = seq_size
         self.size_step = seq_size_step
         self.samples_per_size = samples_per_size
         self.max_samples = max_samples
         self.seq_per_execution = seq_per_execution
 
         # Initial state
-        self.current_sample = 0
+        self.current_sample = current_sample_idx
 
     def __iter__(self):
         return self
 
     def __next__(self):
 
+        print(self.current_sample)
+
         if (self.current_sample == self.max_samples):
             raise StopIteration
 
         # If we hit the step amount, increase the seq size
-        if (self.current_sample != 0 and self.current_sample % self.samples_per_size == 0):
-            self.seq_size += self.size_step
+        #if (self.current_sample != 0 and self.current_sample % self.samples_per_size == 0):
+        #    self.seq_size += self.size_step
+
+        # Get the current multiplier
+        current_step = math.floor((self.current_sample)/self.samples_per_size)
+        if current_step != 0:
+            self.seq_size = self.initial_size + current_step * self.size_step # Since there is addition, we must have an if
 
         self.current_sample += 1
 
         return random_seq_list(self.dict, self.seq_size, self.seq_per_execution)
 
+# Custom reader, so we can use depency injection when testing
 def file_open(path: str):
     with open(path, 'r', encoding='utf-8') as file:
-        return file.read()
-
-class ExecutionPolicy_ReadyDatabase:
-
-    def __init__(self, seq_database_path: str, database_reader = file_open):
-        
-        self.seq_database = database_reader(seq_database_path).split("\n")
+        list_of_sequences = file.read().split("\n")
 
         # Remove empty last cell
-        if(len(self.seq_database[-1]) == 0):
-            self.seq_database.pop()
+        if(len(list_of_sequences[-1]) == 0):
+            list_of_sequences.pop()
+
+        return list_of_sequences
+
+def open_hdf_sequence_database(path: str):
+    pd.read_hdf(path).Sequences.values
+
+# Load a database of sequences for execution
+class ExecutionPolicy_ReadyDatabase:
+
+    def __init__(self, seq_database_path: str, database_reader = file_open, current_sample_idx: int = 0):
+
+        self.seq_database = database_reader(seq_database_path)
 
         # Initial state
-        self.current_sample = 0
+        self.current_sample = current_sample_idx
 
         print('Database loaded')
 
@@ -150,13 +167,14 @@ class ExecutionPolicy_ReadyDatabase:
 
         return sample
 
+# Select the right policy
 def load_execution_policy(execution_policy: str, database_reader = file_open):
 
     match execution_policy:
 
         case 'load_database':
-            return ExecutionPolicy_ReadyDatabase(configuration.seq_database_path, database_reader)
+            return ExecutionPolicy_ReadyDatabase(configuration.seq_database_path, database_reader, configuration.start_from_idx)
         case 'seq_random_equal_size':
-            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution)
+            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.start_from_idx)
         case _:
             raise Exception('Invalid execution poilicy')
