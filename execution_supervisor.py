@@ -164,7 +164,9 @@ def main():
     LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
 
     # Loop over the database and execute the command
-    for test_input in LoopGenerator:
+    for (current_sample, test_input) in LoopGenerator:
+
+        print(f"\n\nCurrent sample: {current_sample}")
 
         # Build input
         tmp_file_path = "/tmp/pastar_input.fasta"
@@ -236,7 +238,7 @@ def main():
     # Save results in a specific format
     print(results)
 
-    if(ask_for_confirmation(configuration.write_to_file_without_asking) and append_results == False):
+    if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
         #results.to_feather(configuration.result_path)
         results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False)
         print('RESULTS SAVED!')

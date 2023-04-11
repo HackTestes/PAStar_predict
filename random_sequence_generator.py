@@ -110,8 +110,6 @@ class ExecutionPolicy_EqualSizeSeq:
 
     def __next__(self):
 
-        print(self.current_sample)
-
         if (self.current_sample == self.max_samples):
             raise StopIteration
 
@@ -126,7 +124,57 @@ class ExecutionPolicy_EqualSizeSeq:
 
         self.current_sample += 1
 
-        return random_seq_list(self.dict, self.seq_size, self.seq_per_execution)
+        return (self.current_sample-1, random_seq_list(self.dict, self.seq_size, self.seq_per_execution))
+
+class SequenceDatabase:
+    def __init__(self, path: str, start_line: int):
+        self.file_database = open(path, 'r', encoding='utf-8')
+        self.start_line = start_line
+        self.set_start_position()
+
+    def get(self):
+        line = self.file_database.readline()
+        if len(line) != 0:
+            return line
+        else:
+            return None
+
+    def set_start_position(self):
+        # Range in not inclusive -> got to the specified line
+        for line_idx in range(0, self.start_line):
+            self.file_database.readline()
+
+        # We are now at the correct line in the file
+
+
+# Load a database of sequences for execution
+class ExecutionPolicy_IterDatabase:
+
+    def __init__(self, seq_database_path: str, current_sample_idx: int = 0):
+
+        self.seq_database = SequenceDatabase(seq_database_path, current_sample_idx)
+
+        # Initial state
+        self.current_sample = current_sample_idx
+
+        print('Database loaded')
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+
+        sample = self.seq_database.get()
+
+        if (sample == None):
+            raise StopIteration
+
+        sample = sample.split("-")
+
+        self.current_sample += 1
+
+        return (self.current_sample-1, sample)
+
 
 # Custom reader, so we can use depency injection when testing
 def file_open(path: str):
@@ -165,15 +213,17 @@ class ExecutionPolicy_ReadyDatabase:
 
         self.current_sample += 1
 
-        return sample
+        return (self.current_sample-1, sample)
 
 # Select the right policy
 def load_execution_policy(execution_policy: str, database_reader = file_open):
 
     match execution_policy:
 
+        #case 'load_database':
+        #    return ExecutionPolicy_ReadyDatabase(configuration.seq_database_path, database_reader, configuration.start_from_idx)
         case 'load_database':
-            return ExecutionPolicy_ReadyDatabase(configuration.seq_database_path, database_reader, configuration.start_from_idx)
+            return ExecutionPolicy_IterDatabase(configuration.seq_database_path, configuration.start_from_idx)
         case 'seq_random_equal_size':
             return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.start_from_idx)
         case _:
