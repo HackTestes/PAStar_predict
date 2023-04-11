@@ -154,8 +154,8 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
                 font=dict(color='red' if is_max_higher_similarity == False else 'black')
             )
 
-    fig.show()
-    #fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
+    #fig.show()
+    fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
 
 def merge_data_single_multi(single_thread_data, multi_thread_data):
     multi_thread_data['threading'] = 'multi'
@@ -210,10 +210,14 @@ plot_helper(4, data_single, data_multi)
 
 # Seq 5
 
-merged_info = PAStarDataCollection([PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_24.feather")])
-data = merged_info.get_merged_database()
+data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_24.feather")
+data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_1.feather")
+plot_helper(5, data_single, data_multi)
 
-build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='box', file_name='Seq_5-Nodes-Box', show_similarity=True)
-build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='scatter', file_name='Seq_5-Nodes-Scatter', show_similarity=True)
+#merged_info = PAStarDataCollection([PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_24.feather")])
+#data = merged_info.get_merged_database()
+#
+#build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='box', file_name='Seq_5-Nodes-Box', show_similarity=True)
+#build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='scatter', file_name='Seq_5-Nodes-Scatter', show_similarity=True)
 
 
