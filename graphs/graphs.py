@@ -21,13 +21,14 @@ class PAStarData:
         self.sequences_per_execution = int(file_dict['Seq'])
         self.max_size = int(file_dict['MaxSize'].replace(".0", ''))
 
-        self.database = pd.read_feather(database_path)
+        self.database = pd.read_hdf(database_path)
+        self.rebuild_index()
         self.insert_threading_info_into_database()
         self.insert_ratio_info()
         self.convert_time_info()
 
     def get_dict_from_file_name(self):
-        file_tuple_list = list(map(lambda x: tuple(x.split("_")), self.file_name[0:-8].split('-')))
+        file_tuple_list = list(map(lambda x: tuple(x.split("_")), self.file_name[0:-4].split('-')))
         file_dict = dict(filter(lambda x: True if len(x) == 2 else False, file_tuple_list))
 
         return file_dict
@@ -38,6 +39,12 @@ class PAStarData:
         else:
             self.database['threading'] = 'single'
 
+    def rebuild_index(self):
+        self.database.index = range(self.database.shape[0])
+
+    def trim(self, end_index):
+        self.database = self.database.iloc[:end_index]
+
     def insert_ratio_info(self):
         self.database['Ratio'] = self.database.Nodes/(self.database.Seq_size**self.database.Seq_qtd)*100
 
@@ -45,7 +52,7 @@ class PAStarData:
         self.database['Time'] = pd.to_timedelta(pd.to_datetime(self.database['Execution_time'],format= '%M:%S.%fs' ).dt.time.astype(str)).dt.total_seconds()
 
     def get_description(self):
-        return f'Sequences: {self.sequences_per_execution}\tSamples per size step: {self.samples_per_size}'
+        return f'Sequences: {self.sequences_per_execution}\tSamples per size: {self.samples_per_size}'
 
 class PAStarDataCollection:
 
@@ -78,11 +85,8 @@ class PAStarDataCollection:
             samples_size.add(data.samples_per_size)
 
 
-        return f'Sequences: {"-".join(map(str, sequences_exec))}\tSamples per size step: {"-".join(map(str,samples_size))}'
+        return f'Sequences: {"-".join(map(str, sequences_exec))}\tSamples per size: {"-".join(map(str,samples_size))}'
 
-
-
-print(PAStarDataCollection([PAStarData("./data/SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_24.feather")]).get_description())
 
 def format_subtitle(subtitle: str):
     if subtitle != None:
@@ -104,6 +108,16 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
 
     # Adding the correct labels to the xaxis
     fig.update_layout(xaxis={"tickmode":"array", "tickvals": x_input})
+
+    x_input_unique = list(set(x_input))
+    x_input_unique.sort()
+
+    added_value = (x_input_unique[1]- x_input_unique[0])/2
+    print(x_input_unique)
+
+    for x in x_input_unique:
+        fig.add_vline(x=x+added_value, line_width=1, line_dash="dash", line_color="white")
+        print(f'line {x} \t add: {added_value}')
 
     # Adding text
     fig.update_layout(
@@ -154,8 +168,8 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
                 font=dict(color='red' if is_max_higher_similarity == False else 'black')
             )
 
-    #fig.show()
-    fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
+    fig.show()
+    #fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
 
 def merge_data_single_multi(single_thread_data, multi_thread_data):
     multi_thread_data['threading'] = 'multi'
@@ -165,59 +179,63 @@ def merge_data_single_multi(single_thread_data, multi_thread_data):
 
 
 # This is just the reduce the amount of times I repeat the same function for the same type of graph
-def plot_helper(sequence_size, data_single, data_multi):
+def plot_helper(sequence_size, execution_data): #data_single, data_multi):
 
-    merged_info = PAStarDataCollection([data_multi, data_single])
+    merged_info = PAStarDataCollection(execution_data)
     total_data = merged_info.get_merged_database()
 
     print(total_data)
 
     # Scatter
-    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter')
-    build_graph(data_multi.database, data_multi.database.Seq_size, data_multi.database.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(data_multi.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=data_multi.database.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter-Multi-Similarity', show_similarity=True)
-    build_graph(data_single.database, data_single.database.Seq_size, data_single.database.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(data_single.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=data_single.database.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter-Single-Similarity', show_similarity=True)
-    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados / Pior caso (%)', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Scatter')
+    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter')
+    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Scatter')
 
     # Box
-    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box')
-    build_graph(data_multi.database, data_multi.database.Seq_size, data_multi.database.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(data_multi.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=data_multi.database.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box-Multi-Similarity', show_similarity=True)
-    build_graph(data_single.database, data_single.database.Seq_size, data_single.database.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(data_single.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados', color=data_single.database.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box-Single-Similarity', show_similarity=True)
-    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', 'Threading', 'Tamanho das sequências', 'Nós visitados / Pior caso (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
 
-    build_graph(total_data, total_data.Seq_size, total_data.Time, f'Relação de tempo e tamanho das sequências {format_subtitle(merged_info.get_description())}', 'Threading', 'Tamanho das sequências', 'Tempo de execução (seg)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Time-Box')
+    # Time graph
+    build_graph(total_data, total_data.Seq_size, total_data.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Tempo de execução (seg)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Time-Box')
+
+    # Shows data with similarity information -> it is better to get sperated info on each for visualization
+    for pastar_data in execution_data:
+        # Scatter
+        build_graph(pastar_data.database, pastar_data.database.Seq_size, pastar_data.database.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(pastar_data.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=pastar_data.database.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter-Threads_{pastar_data.threads}-Similarity', show_similarity=True)
+
+        # Box
+        build_graph(pastar_data.database, pastar_data.database.Seq_size, pastar_data.database.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(pastar_data.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=pastar_data.database.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box-Threads_{pastar_data.threads}-Similarity', show_similarity=True)
+
 
 
 # Plotting
 
-data = pd.read_feather("./data/4000_samples.feather")
+# Seq 3
 
-#data_multi = pd.read_feather("./data/SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_24.feather")
-#data_single = pd.read_feather("./data/SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_1.feather")
-#
-#total_data = merge_data_single_multi(data_single, data_multi)
+data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3000.0-Seq_3-SizeSample_20-Step_100-Samples_600-threads_24.hdf")
+data_multi.trim(400)
 
-data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_24.feather")
-data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_1.feather")
-plot_helper(3, data_single, data_multi)
+data_multi_12 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3000.0-Seq_3-SizeSample_20-Step_100-Samples_600-threads_12.hdf")
+data_multi_12.trim(400)
 
+data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3000.0-Seq_3-SizeSample_20-Step_100-Samples_600-threads_1.hdf")
+data_single.trim(400)
+
+plot_helper(3, [data_single, data_multi_12, data_multi])
 
 # Seq 4
 
-data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_400.0-Seq_4-SizeSample_35-Step_50-Samples_245-threads_24.feather")
-data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_400.0-Seq_4-SizeSample_35-Step_50-Samples_245-threads_1.feather")
-plot_helper(4, data_single, data_multi)
+data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_400.0-Seq_4-SizeSample_15-Step_50-Samples_105-threads_24.hdf")
+data_multi_12 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_400.0-Seq_4-SizeSample_15-Step_50-Samples_105-threads_12.hdf")
+data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_400.0-Seq_4-SizeSample_15-Step_50-Samples_105-threads_1.hdf")
 
+plot_helper(4, [data_single, data_multi_12, data_multi])
 
 # Seq 5
 
-data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_24.feather")
-data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_1.feather")
-plot_helper(5, data_single, data_multi)
+data_multi = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_200.0-Seq_5-SizeSample_20-Step_50-Samples_80-threads_24.hdf")
+data_multi_12 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_200.0-Seq_5-SizeSample_20-Step_50-Samples_80-threads_12.hdf")
+data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_200.0-Seq_5-SizeSample_20-Step_50-Samples_80-threads_1.hdf")
 
-#merged_info = PAStarDataCollection([PAStarData("./data/SeqResults-SeqDatabase-MaxSize_350.0-Seq_5-SizeSample_35-Step_50-Samples_210-threads_24.feather")])
-#data = merged_info.get_merged_database()
-#
-#build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='box', file_name='Seq_5-Nodes-Box', show_similarity=True)
-#build_graph(data, data.Seq_size, data.Nodes, f'Relação de nós e tamanho das sequências {format_subtitle(merged_info.get_description())}', x_title='Tamanho das sequências', y_title='Nós visitados', color=data.threading, graph_type='scatter', file_name='Seq_5-Nodes-Scatter', show_similarity=True)
+plot_helper(5, [data_single, data_multi_12, data_multi])
 
 

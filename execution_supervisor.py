@@ -210,7 +210,7 @@ def main():
             # This is just to visualize the execution
             worst_case = len(test_input[0]) ** len(test_input)
             ratio = (node_info/worst_case)*100
-            print(f"Nodes searched: { node_info } \tExecution time: {exec_time} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
+            print(f"Nodes searched: { node_info } \tSimilarity: {similarity} \tExecution time: {exec_time} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
             results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], Misc=[misc])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
@@ -218,7 +218,7 @@ def main():
 
         # Save results in the disk and clear what is in memory (append)
         if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
-            results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False)
+            results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False, min_itemsize=75)
             results.drop(results.index, inplace=True)
             print('RESULTS SAVED!')
 
@@ -240,7 +240,7 @@ def main():
 
     if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
         #results.to_feather(configuration.result_path)
-        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False)
+        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
         print('RESULTS SAVED!')
 
         # Do NOT overwrite the original database
