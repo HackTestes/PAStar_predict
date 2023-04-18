@@ -1,4 +1,5 @@
 import os
+import resource
 import subprocess
 import math
 import pandas as pd
@@ -153,7 +154,7 @@ def main():
     if(confirmation != "y"):
         quit()
 
-    results = pd.DataFrame(dict(Nodes= [], Seq_qtd=[], Seq_size=[], Execution_time=[], Heuristic_time=[], Similarity=[], Score=[], Misc=[]))
+    results = pd.DataFrame(dict(Nodes= [], MaxRSS=[], Seq_qtd=[], Seq_size=[], Execution_time=[], Heuristic_time=[], Similarity=[], Score=[], Misc=[]))
     seq_input = []
 
     # Restore execution before loading the excution policies
@@ -163,17 +164,20 @@ def main():
     # Create OR load sequence database
     LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
 
-    # Loop over the database and execute the command
-    for (current_sample, test_input) in LoopGenerator:
+    tmp_file_path = "/tmp/pastar_input.fasta"
+    with TmpFile(tmp_file_path) as tmp_file:
 
-        print(f"\n\nCurrent sample: {current_sample}")
+        # Loop over the database and execute the command
+        for (current_sample, test_input) in LoopGenerator:
 
-        # Build input
-        tmp_file_path = "/tmp/pastar_input.fasta"
-        tries: int = 0
-        exit_code:int = 1
+            print(f"\n\nCurrent sample: {current_sample}")
 
-        with TmpFile(tmp_file_path) as tmp_file:
+            # Build input
+            #tmp_file_path = "/tmp/pastar_input.fasta"
+            tries: int = 0
+            exit_code:int = 1
+
+            #with TmpFile(tmp_file_path) as tmp_file:
             clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file.write_handle)
 
             # Keep trying in case of erros until you hit the limit
@@ -188,6 +192,9 @@ def main():
             if(exit_code != 0):
                 print('FAILED EXECUTION')
                 continue
+
+            # Max RSS -> maximum amount of physical memory used
+            max_rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])['Total']
@@ -210,29 +217,29 @@ def main():
             # This is just to visualize the execution
             worst_case = len(test_input[0]) ** len(test_input)
             ratio = (node_info/worst_case)*100
-            print(f"Nodes searched: { node_info } \tSimilarity: {similarity} \tExecution time: {exec_time} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
+            print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
-            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], Misc=[misc])) ], ignore_index=True)
+            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], Misc=[misc])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
             # VmPeak and RSS might be added later
 
-        # Save results in the disk and clear what is in memory (append)
-        if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
-            results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False, min_itemsize=75)
-            results.drop(results.index, inplace=True)
-            print('RESULTS SAVED!')
+            # Save results in the disk and clear what is in memory (append)
+            if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
+                results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False, min_itemsize=75)
+                results.drop(results.index, inplace=True)
+                print('RESULTS SAVED!')
 
-            # Do NOT write in the original database
-            if(configuration.execution_policy != 'load_database'):
-                with open(configuration.seq_database_path, 'a') as file:
+                # Do NOT write in the original database
+                if(configuration.execution_policy != 'load_database'):
+                    with open(configuration.seq_database_path, 'a') as file:
 
-                    if len(seq_input) != 1:
-                        file.write( '\n'.join(seq_input) )
-                    else:
-                        file.write(seq_input[0] + "\n")
+                        if len(seq_input) != 1:
+                            file.write( '\n'.join(seq_input) )
+                        else:
+                            file.write(seq_input[0] + "\n")
 
-                    seq_input.clear()
-                    print('DATABASE SAVED!')
+                        seq_input.clear()
+                        print('DATABASE SAVED!')
 
 
     # Save results in a specific format

@@ -49,7 +49,10 @@ class PAStarData:
         self.database['Ratio'] = self.database.Nodes/(self.database.Seq_size**self.database.Seq_qtd)*100
 
     def convert_time_info(self):
-        self.database['Time'] = pd.to_timedelta(pd.to_datetime(self.database['Execution_time'],format= '%M:%S.%fs' ).dt.time.astype(str)).dt.total_seconds()
+        phase_1_time = pd.to_timedelta(pd.to_datetime(self.database['Heuristic_time'],format= '%M:%S.%fs' ).dt.time.astype(str)).dt.total_seconds()
+        phase_2_time = pd.to_timedelta(pd.to_datetime(self.database['Execution_time'],format= '%M:%S.%fs' ).dt.time.astype(str)).dt.total_seconds()
+        self.database['Time'] = phase_1_time + phase_2_time
+        #self.database['Time'] = pd.to_timedelta(pd.to_datetime(self.database['Execution_time'],format= '%M:%S.%fs' ).dt.time.astype(str)).dt.total_seconds()
 
     def get_description(self):
         return f'Sequences: {self.sequences_per_execution}\tSamples per size: {self.samples_per_size}'
@@ -109,9 +112,12 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
     # Adding the correct labels to the xaxis
     fig.update_layout(xaxis={"tickmode":"array", "tickvals": x_input})
 
+    # Add vertical line to help visualization
     x_input_unique = list(set(x_input))
-    x_input_unique.sort()
+    x_input_unique.sort() # Get the correct order after buiding the set with unique values
+    x_input_unique.pop() # Eliminate vlines at the final border
 
+    # Get the value necessary to reach the moddle point
     added_value = (x_input_unique[1]- x_input_unique[0])/2
     print(x_input_unique)
 

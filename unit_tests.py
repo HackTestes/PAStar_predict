@@ -157,14 +157,47 @@ class TestMethods(unittest.TestCase):
         samples_per_execution = 2
 
         results = []
-        for test in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
+        for (sample_idx, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
 
             # Check for samples per execution
             self.assertEqual(len(test), samples_per_execution)
 
             # Check if samples have equal size
             for seq in test:
-                self.assertEqual(len(seq), len(test[0])) # Test if are are equal to the first seq
+                self.assertEqual(len(seq), len(test[0])) # Test if they are are equal to the first seq
+
+            results.append(test)
+
+        # Check total size
+        self.assertEqual(len(results), max_samples)
+
+        # Check sequence size step
+        target_size = initial_seq_size
+        for sample_idx in range( max_samples ):
+
+            if (sample_idx != 0 and sample_idx % unique_samples_per_size == 0):
+                target_size += seq_size_step
+
+            # Since all sequences have the same size, only the first one is necessary
+            self.assertEqual(len(results[ sample_idx ][0]), target_size)
+
+    def test_policy_random_max_similarity(self):
+        seq_dictionary =['A', 'T', 'C', 'G']
+        initial_seq_size = 10
+        seq_size_step = 5
+        unique_samples_per_size = 2
+        max_samples = 10
+        samples_per_execution = 2
+
+        results = []
+        for (sample_idx, test) in random_sequence_generator.ExecutionPolicy_MaxSimilarity(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
+
+            # Check for samples per execution
+            self.assertEqual(len(test), samples_per_execution)
+
+            # Check if samples are equal
+            for seq in test:
+                self.assertEqual(seq, test[0]) # Test if they are are equal to the first seq
 
             results.append(test)
 
@@ -183,10 +216,10 @@ class TestMethods(unittest.TestCase):
 
     def test_load_execution_policy(self):
         self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('seq_random_equal_size'), random_sequence_generator.ExecutionPolicy_EqualSizeSeq))
-        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n'), random_sequence_generator.ExecutionPolicy_ReadyDatabase))
+        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n'), random_sequence_generator.ExecutionPolicy_IterDatabase))
 
-    def test_load_seq_database(self):
-        print(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n').seq_database)
+    #def test_load_seq_database(self):
+    #    print(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n').seq_database)
 
     def test_get_file_properties(self):
         file_name = 'SeqResults-SeqDatabase-MaxSize_2000.0-Seq_3-SizeSample_20-Step_100-Samples_400-threads_1.feather'

@@ -5,15 +5,6 @@ import gzip
 import configuration
 import math
 
-## Letters that represent amino acids
-#seq_dictionary =['A', 'T', 'C', 'G']
-#
-## Parameters
-#current_seq_size = 50
-#seq_size_steps = 5
-#unique_samples_per_size = 100
-#max_samples = 1000
-
 def random_seq(seq_dictionary: [str], seq_size: int):
     random_sequence = ""
 
@@ -62,28 +53,45 @@ def seq_random_gen(seq_dictionary: [str], current_seq_size: int, seq_size_steps:
 
     return sequences_list
 
-# This will create a execution unit ->
-# Input: sequences of same size
-# Action: execute PAStar
-#
-# This should generate a small sequence list per execition
-#def seq_random_execution_unit(seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, action ):
-#
-#    # This captures the exit of the "action", this is to help testing
-#    debug_exit = []
-#
-#    # Remainder must be 0
-#    if (max_samples%samples_per_size != 0):
-#        raise Exception('Remainder must be 0 between max samples and unique seqences')
-#
-#    # Calculate random samples util the max amount is reached
-#    for sample_bucket_idx in range( int(max_samples/samples_per_size) ):
-#        for sample_idx in range( samples_per_size ):
-#            action( random_seq_list(seq_dictionary, seq_size, seq_per_execution), debug_exit )
-#
-#        seq_size += seq_size_step
-#
-#    return debug_exit
+
+# Geberate sequences with 100% similarity
+class ExecutionPolicy_MaxSimilarity:
+
+    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, current_sample_idx: int = 0):
+        # Remainder must be 0
+        if (max_samples%samples_per_size != 0):
+            raise Exception('Remainder must be 0 between max samples and unique seqences')
+
+        # Configuration
+        self.dict = seq_dictionary
+        self.seq_size = seq_size
+        self.initial_size = seq_size
+        self.size_step = seq_size_step
+        self.samples_per_size = samples_per_size
+        self.max_samples = max_samples
+        self.seq_per_execution = seq_per_execution
+
+        # Initial state
+        self.current_sample = current_sample_idx
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+
+        if (self.current_sample == self.max_samples):
+            raise StopIteration
+
+        # Get the current multiplier
+        current_step = math.floor((self.current_sample)/self.samples_per_size)
+        if current_step != 0:
+            self.seq_size = self.initial_size + current_step * self.size_step # Since there is addition, we must have an if
+
+        self.current_sample += 1
+
+        equal_sequences = random_seq_list(self.dict, self.seq_size, 1) * self.seq_per_execution
+
+        return (self.current_sample-1, equal_sequences)
 
 # Generate multiple sequences of the same size with random letters from the dictionary (DNA, RNA...)
 class ExecutionPolicy_EqualSizeSeq:
@@ -226,5 +234,7 @@ def load_execution_policy(execution_policy: str, database_reader = file_open):
             return ExecutionPolicy_IterDatabase(configuration.seq_database_path, configuration.start_from_idx)
         case 'seq_random_equal_size':
             return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.start_from_idx)
+        case 'seq_max_similarity_equal_size':
+            return ExecutionPolicy_MaxSimilarity(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.start_from_idx)
         case _:
             raise Exception('Invalid execution poilicy')
