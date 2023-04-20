@@ -174,8 +174,8 @@ def build_graph(input, x_input, y_input, title=None, legend_title=None, x_title=
                 font=dict(color='red' if is_max_higher_similarity == False else 'black')
             )
 
-    fig.show()
-    #fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
+    #fig.show()
+    fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
 
 def merge_data_single_multi(single_thread_data, multi_thread_data):
     multi_thread_data['threading'] = 'multi'
@@ -244,4 +244,14 @@ data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_200.0-Seq_5-Size
 
 plot_helper(5, [data_single, data_multi_12, data_multi])
 
+# MAxRSS -> THIS IS JUST AN EXPERIMENT
+
+data_RSS = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_2500.0-Seq_3-SizeSample_1-Step_50-Samples_49-MaxRSS-threads_24-MaxRSS.hdf")
+build_graph(data_RSS.database, data_RSS.database.Seq_size, data_RSS.database.MaxRSS, f'Relationship between RSS and sequences\' size {format_subtitle(data_RSS.get_description())}', 'Threading', 'Sequence size', 'MaxRSS', color=data_RSS.database.threading, graph_type='box', file_name=f'Seq_{3}-MaxRSS-box')
+
+data_RSS = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_5000.0-Seq_3-SizeSample_5-Step_50-Samples_495-MaxRSS-MaxSim-threads_24-MaxRSS-MaxSim.hdf")
+build_graph(data_RSS.database, data_RSS.database.Seq_size, data_RSS.database.MaxRSS, f'Relationship between RSS and sequences\' size (Max Similarity) {format_subtitle(data_RSS.get_description())}', 'Threading', 'Sequence size', 'MaxRSS', color=data_RSS.database.threading, graph_type='box', file_name=f'Seq_{3}-MaxRSS-MaxSim-box')
+
+data_RSS = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_5000.0-Seq_3-SizeSample_5-Step_50-Samples_495-MaxRSS-MaxSim-threads_24-MaxRSS-MaxSim.hdf")
+build_graph(data_RSS.database, data_RSS.database.Seq_size, data_RSS.database.Nodes, f'Relationship between nodes visited and sequences\' size (Max Similarity) {format_subtitle(data_RSS.get_description())}', 'Threading', 'Sequence size', 'Nodes Visited', color=data_RSS.database.threading, graph_type='box', file_name=f'Seq_{3}-Nodes-MaxSim-box')
 
