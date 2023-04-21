@@ -214,9 +214,8 @@ def main():
             # Misc (I don1t know the meaning of this)
             misc = pastar_get_misc(result['stdout'])
 
-            # This is just to visualize the execution
-            worst_case = len(test_input[0]) ** len(test_input)
-            ratio = (node_info/worst_case)*100
+            #print(test_input)
+
             print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
             results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], Misc=[misc])) ], ignore_index=True)

@@ -141,7 +141,7 @@ class SequenceDatabase:
         self.set_start_position()
 
     def get(self):
-        line = self.file_database.readline()
+        line = self.file_database.readline().replace('\n','') # Radline also returns \n, so it needs to be removes
         if len(line) != 0:
             return line
         else:
