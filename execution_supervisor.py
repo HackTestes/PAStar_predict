@@ -130,6 +130,15 @@ def pastar_get_misc(pastar_output: str):
 
     return output
 
+def pastar_get_g_score(pastar_output: str):
+    output = pastar_output.replace("(", '').replace(")", '')
+
+    # Input comes with LETTERS as \\t and \\n, insted of the byte long representation
+    output = output.split("\\n")
+    output = output[ 5 ].split(": ")[1].split("\\t")[1].replace(" - ", ':').split(' ') # Get each value separated by :
+    output = output[0].split(":")[1] # Select g and get the value
+
+    return output
 
 def ask_for_confirmation(bypass: bool):
     if bypass != True:
@@ -148,18 +157,33 @@ def main():
     print(f'Command:{configuration.command} \nDatabase: {configuration.seq_database_name} \nResults file: {configuration.result_path}\n')
     print(f'Execution policy: {configuration.execution_policy}')
     print(f'Restore execution: {configuration.restore_execution}')
+    print(f'Write to files without asking: {configuration.write_to_file_without_asking}')
+    print(f'Append results: {configuration.append_results}')
 
     confirmation = input("\nDo you want to continue(y)?\n")
 
     if(confirmation != "y"):
         quit()
 
-    results = pd.DataFrame(dict(Nodes= [], MaxRSS=[], Seq_qtd=[], Seq_size=[], Execution_time=[], Heuristic_time=[], Similarity=[], Score=[], Misc=[]))
+    results = pd.DataFrame(dict(Nodes= [], MaxRSS=[], Seq_qtd=[], Seq_size=[], Execution_time=[], Heuristic_time=[], Similarity=[], Score=[], G_score=[]))
     seq_input = []
 
     # Restore execution before loading the excution policies
     if configuration.restore_execution == True:
         restore_execution.restore_execution()
+
+    else:
+        # Start with new results, so you need to delete the old one
+        if os.path.exists(configuration.result_path):
+            raise Exception('Results already exist!')
+            #os.remove(configuration.result_path)
+            print('PREVIOUS RESULTS DELETED!')
+
+        # Start with a new seq database, so you need to delete the old one
+        if os.path.exists(configuration.seq_database_path) and configuration.execution_policy != 'load_database':
+            raise Exception('Sequence database already exist!')
+            #os.remove(configuration.seq_database_path)
+            print('PREVIOUS SEQUENCE DATABASE DELETED!')
 
     # Create OR load sequence database
     LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
@@ -212,15 +236,12 @@ def main():
             similarity = pastar_get_seq_similarity(result['stdout'])
 
             # Misc (I don1t know the meaning of this)
-            misc = pastar_get_misc(result['stdout'])
+            g_score = pastar_get_g_score(result['stdout'])
 
-            #print(test_input)
+            print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tG: {g_score} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
-            print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
-
-            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], Misc=[misc])) ], ignore_index=True)
+            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
-            # VmPeak and RSS might be added later
 
             # Save results in the disk and clear what is in memory (append)
             if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
@@ -232,20 +253,20 @@ def main():
                 if(configuration.execution_policy != 'load_database'):
                     with open(configuration.seq_database_path, 'a') as file:
 
+                        # Join will not add the \n if there is only one input (1 set of 3 sequences for instance)
                         if len(seq_input) != 1:
                             file.write( '\n'.join(seq_input) )
                         else:
                             file.write(seq_input[0] + "\n")
 
                         seq_input.clear()
-                        print('DATABASE SAVED!')
+                        print('SEQUENCE DATABASE SAVED!')
 
 
     # Save results in a specific format
-    print(results)
+    print('\n\n', results, sep='')
 
     if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
-        #results.to_feather(configuration.result_path)
         results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
         print('RESULTS SAVED!')
 
@@ -253,7 +274,7 @@ def main():
         if(configuration.execution_policy != 'load_database'):
             with open(configuration.seq_database_path, 'w') as file:
                 file.write( '\n'.join(seq_input) )
-                print('DATABASE SAVED!')
+                print('SEQUENCE DATABASE SAVED!')
 
 if __name__ == '__main__':
     main()

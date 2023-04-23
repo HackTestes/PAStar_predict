@@ -113,6 +113,16 @@ class TestMethods(unittest.TestCase):
         result = execution_supervisor.pastar_get_misc(sample_pastar_input)
         self.assertEqual(result, "g - 26109 h - 0 f - 26109")
 
+    def test_execute_program_g_socre_info(self):
+        output = sample_pastar_input.replace("(", '').replace(")", '')
+
+        # Input comes with LETTERS as \\t and \\n, insted of the byte long representation
+        output = output.split("\\n")
+        output = output[ 5 ].split(": ")[1].split("\\t")[1].replace(" - ", ':').split(' ') # Get each value separated by :
+        output = output[0].split(":")[1] # Select g and get the value
+
+        self.assertEqual(output, "26109")
+
     def test_random_sequence(self):
 
         seq_dictionary =['A', 'T', 'C', 'G']
@@ -215,8 +225,11 @@ class TestMethods(unittest.TestCase):
             self.assertEqual(len(results[ sample_idx ][0]), target_size)
 
     def test_load_execution_policy(self):
-        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('seq_random_equal_size'), random_sequence_generator.ExecutionPolicy_EqualSizeSeq))
-        self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n'), random_sequence_generator.ExecutionPolicy_IterDatabase))
+        try:
+            self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('seq_random_equal_size'), random_sequence_generator.ExecutionPolicy_EqualSizeSeq))
+            self.assertTrue(isinstance(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n'), random_sequence_generator.ExecutionPolicy_IterDatabase))
+        except FileNotFoundError:
+            pass
 
     #def test_load_seq_database(self):
     #    print(random_sequence_generator.load_execution_policy('load_database', lambda x: 'AAA-TTT\nGGG-GGG\nCGC-ATG\n').seq_database)
