@@ -162,6 +162,10 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
         case 'bar':
             fig = px.bar(input, x=x_input, y=y_input, color=color, barmode='group')
             fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
+
+            # Remove annoying bars when they are mostly the same (this just lowers them)
+            fig.update_yaxes(range=[min(y_input-0.3), max(y_input+1)])
+            fig.update_layout( yaxis = dict(tickmode = 'linear', tick0 = 0, dtick = 0.5) )
         case 'line':
             fig = px.line(input, x=x_input, y=y_input, color=color, markers=True)
             fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
@@ -262,13 +266,13 @@ def plot_helper(sequence_size, execution_data): #data_single, data_multi):
 #    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Scatter')
 #
     # Box
-    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box')
-    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
-    build_graph(total_data, total_data.Seq_size, total_data.MaxRSS, f'Relationship between MaxRSS and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'MaxRSS (KiB)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-MaxRSS-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.MaxRSS, f'Relationship between MaxRSS and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'MaxRSS (KiB)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-MaxRSS-Box')
 
 
     # Time graph
-    build_graph(total_data, total_data.Seq_size, total_data.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Execution time (sec)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Time-Box')
+    build_graph(total_data, total_data.Seq_size, total_data.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Execution time (sec)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Time-Box')
 
     # Relative performance
     # Speedup

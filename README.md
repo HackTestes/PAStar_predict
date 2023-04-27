@@ -10,6 +10,9 @@ This repository contains a set of scripts to test and predict the memory usage o
     * Kaleido (graph engine) 0.2.1
     * Psutil 5.9.0
     * statsmodels 0.13.5
+    * tables
+    * pandasql
+    * numpy
 
 Make sure that all the packages are compatible, since different versions may cause conflicts
 

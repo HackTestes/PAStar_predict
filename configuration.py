@@ -38,7 +38,7 @@ threads = '24'
 command = ["../astar_msa/bin/msa_pastar","--cost_type=NUC", "-t", threads]
 
 # Results
-write_to_file_without_asking = True
+write_to_file_without_asking = False
 result_file_name = f'SeqResults-{seq_database_name}-threads_{threads}.hdf'
 result_path = f'./data/{result_file_name}'
 

@@ -2,3 +2,6 @@ __pycache__
 **.png
 **.pdf
 **.svg
+**.so
+/container/msa/**
+/container/dependencies/**
