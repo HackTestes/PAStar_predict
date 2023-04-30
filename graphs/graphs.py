@@ -67,14 +67,25 @@ class PAStarData:
 
     def get_increase_rate(self, col):
         means = self.database.groupby('Seq_size', as_index=False).mean(numeric_only=True)
-        rates = [1] # Since the first value has no previous one, consider 1
 
-        # Compare the previous mean to evaluate the increase
-        for row_idx in range(1, means.shape[0]):
-            rates.append(round( means.iloc[row_idx][col] / means.iloc[row_idx-1][col], 2 ))
+
+        #rates = [1] # Since the first value has no previous one, consider 1
+        ## Compare the previous mean to evaluate the increase
+        #for row_idx in range(1, means.shape[0]):
+        #    rates.append(round( means.iloc[row_idx][col] / means.iloc[row_idx-1][col], 2 ))
+
+        # Get the increase rate in relation to the first item
+        rates = (means[col] / means.iloc[1][col]).round(2)
 
         means['IncreaseRate'] = rates
         means['Threading'] = self.database.threading[0]
+
+        return means
+
+    def get_means(self):
+        means = means = self.database.groupby('Seq_size', as_index=False).mean(numeric_only=True)
+        means['threading'] = self.database.threading[0]
+        means['threads'] = self.threads
 
         return means
 
@@ -131,6 +142,14 @@ class PAStarDataCollection:
 
         return pd.concat(dataframes, ignore_index=True).sort_values('threads')
 
+    def get_collection_means(self):
+        dataframes = []
+
+        for data in self.pastar_data:
+            dataframes.append(data.get_means().copy())
+
+        return pd.concat(dataframes, ignore_index=True).sort_values(['threads', 'Seq_size'])
+
     def get_description(self):
 
         # Sequences and samples
@@ -156,25 +175,36 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
     # Build the right graph type
     match graph_type:
         case 'box':
+            return
             fig = px.box(y=y_input, x=x_input, color=color, points=False)
         case 'scatter':
+            return
             fig = px.scatter(y=y_input, x=x_input, color=color)
         case 'bar':
-            fig = px.bar(input, x=x_input, y=y_input, color=color, barmode='group')
+            return
+            fig = px.bar(input, x=x_input, y=y_input, color=color, barmode='group', pattern_shape=color)
             fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
 
             # Remove annoying bars when they are mostly the same (this just lowers them)
             fig.update_yaxes(range=[min(y_input-0.3), max(y_input+1)])
-            fig.update_layout( yaxis = dict(tickmode = 'linear', tick0 = 0, dtick = 0.5) )
+            #fig.update_layout( yaxis = dict(tickmode = 'linear', tick0 = 0, dtick = 1) )
         case 'line':
-            fig = px.line(input, x=x_input, y=y_input, color=color, markers=True)
-            fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
+            fig = px.line(input, x=x_input, y=y_input, color=color, markers=True, line_dash=color, symbol=color)
+            #fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
             fig.update_traces(textposition="top right")
         case _:
             raise Exception('Invalid graph type')
 
     # Adding the correct labels to the xaxis
     fig.update_layout(xaxis={"tickmode":"array", "tickvals": x_input})
+
+    # White backgroud color
+    fig.update_layout(plot_bgcolor="#FFFFFF")
+
+    # Line customization for black and white print
+    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#FFFFFF')
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#AAAAAA')
+
 
     if graph_type != 'bar' and graph_type != 'line':
         # Add vertical line to help visualization
@@ -186,7 +216,7 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
         added_value = (x_input_unique[1]- x_input_unique[0])/2
 
         for x in x_input_unique:
-            fig.add_vline(x=x+added_value, line_width=1, line_dash="dash", line_color="white")
+            fig.add_vline(x=x+added_value, line_width=1, line_dash="dash", line_color="grey")
 
     # Adding text
     fig.update_layout(
@@ -258,8 +288,9 @@ def plot_helper(sequence_size, execution_data): #data_single, data_multi):
     # Check if the info is valid
     merged_info.validate_database()
     total_data = merged_info.get_merged_database()
+    total_data_averages = merged_info.get_collection_means()
 
-    print(total_data)
+    print(total_data, total_data_averages, sep='\n\n')
 
 #    # Scatter
 #    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter')
@@ -270,6 +301,10 @@ def plot_helper(sequence_size, execution_data): #data_single, data_multi):
     build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
     build_graph(total_data, total_data.Seq_size, total_data.MaxRSS, f'Relationship between MaxRSS and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'MaxRSS (KiB)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-MaxRSS-Box')
 
+    # Line
+    build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-Nodes-Line')
+    build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.MaxRSS, f'Relationship between MaxRSS and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'MaxRSS (KiB)', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-MaxRSS-Line')
+    build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Execution time (sec)', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-Time-Line')
 
     # Time graph
     build_graph(total_data, total_data.Seq_size, total_data.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Execution time (sec)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Time-Box')
