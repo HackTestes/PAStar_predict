@@ -175,21 +175,18 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
     # Build the right graph type
     match graph_type:
         case 'box':
-            return
-            fig = px.box(y=y_input, x=x_input, color=color, points=False)
+            fig = px.box(y=y_input, x=x_input, color=color, points=False, template='simple_white')
         case 'scatter':
-            return
-            fig = px.scatter(y=y_input, x=x_input, color=color)
+            fig = px.scatter(y=y_input, x=x_input, color=color, symbol=color, template='simple_white')
         case 'bar':
-            return
-            fig = px.bar(input, x=x_input, y=y_input, color=color, barmode='group', pattern_shape=color)
+            fig = px.bar(input, x=x_input, y=y_input, color=color, barmode='group', pattern_shape=color, template='simple_white')
             fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
 
             # Remove annoying bars when they are mostly the same (this just lowers them)
             fig.update_yaxes(range=[min(y_input-0.3), max(y_input+1)])
             #fig.update_layout( yaxis = dict(tickmode = 'linear', tick0 = 0, dtick = 1) )
         case 'line':
-            fig = px.line(input, x=x_input, y=y_input, color=color, markers=True, line_dash=color, symbol=color)
+            fig = px.line(input, x=x_input, y=y_input, color=color, markers=True, line_dash=color, symbol=color, template='simple_white')
             #fig.add_hline(y=1, line_width=1.5, line_dash="solid", line_color="black")
             fig.update_traces(textposition="top right")
         case _:
@@ -203,7 +200,7 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
 
     # Line customization for black and white print
     fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#FFFFFF')
-    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#AAAAAA')
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', showgrid=True, gridcolor='#AAAAAA')
 
 
     if graph_type != 'bar' and graph_type != 'line':
@@ -267,8 +264,8 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
                 font=dict(color='red' if is_max_higher_similarity == False else 'black')
             )
 
-    fig.show()
-    #fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
+    #fig.show()
+    fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
 
 def build_line_chart(x_input, y_input ):
     pass
@@ -292,10 +289,10 @@ def plot_helper(sequence_size, execution_data): #data_single, data_multi):
 
     print(total_data, total_data_averages, sep='\n\n')
 
-#    # Scatter
-#    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter')
-#    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Scatter')
-#
+    # Scatter
+    build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes-Scatter')
+    build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', 'Threading', 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='scatter', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Scatter')
+
     # Box
     build_graph(total_data, total_data.Seq_size, total_data.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes-Box')
     build_graph(total_data, total_data.Seq_size, total_data.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data.threading, graph_type='box', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Box')
@@ -303,6 +300,8 @@ def plot_helper(sequence_size, execution_data): #data_single, data_multi):
 
     # Line
     build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.Nodes, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-Nodes-Line')
+    build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.Ratio, f'Relationship between nodes visited and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Nodes visited / Worst case (%)', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-Nodes_WorstCase-Line')
+
     build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.MaxRSS, f'Relationship between MaxRSS and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'MaxRSS (KiB)', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-MaxRSS-Line')
     build_graph(total_data_averages, total_data_averages.Seq_size, total_data_averages.Time, f'Relationship between time and sequences\' size {format_subtitle(merged_info.get_description())}', None, 'Sequence size', 'Execution time (sec)', color=total_data_averages.threading, graph_type='line', file_name=f'Seq_{sequence_size}-Time-Line')
 
