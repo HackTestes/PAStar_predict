@@ -2,13 +2,18 @@
 # Also, this centralizes all the configuration
 
 seq_dictionary =['A', 'T', 'C', 'G']
-initial_seq_size = 1000
-seq_size_step = 500
+initial_seq_size = 100
+seq_size_step = 0
 unique_samples_per_size = 1
-max_samples = 4*unique_samples_per_size
+max_samples = 5*unique_samples_per_size
 samples_per_execution = 3 # This gives me the number of sequences in a set will be executed
-executions_per_sample = 3 # This represents how many times the same set of sequences will be executed
+executions_per_sample = 2 # This represents how many times the same set of sequences will be executed
 minimal_similarity_percentage = 0
+
+# How to complete equal sequences
+# random
+# most_different
+sequence_end_pattern = 'most_different'
 
 # They are used to restore the execution
 start_from_idx = 0 # This represents the start sample idx
@@ -44,12 +49,12 @@ threads = '24'
 command = ["../astar_msa/bin/msa_pastar","--cost_type=NUC", "-t", threads]
 
 # Results
-write_to_file_without_asking = True
+write_to_file_without_asking = False
 result_file_name = f'SeqResults-{seq_database_name}-threads_{threads}.hdf'
 result_path = f'./data/{result_file_name}'
 
 # Fractured execution
-restore_execution = True
+restore_execution = False
 restore_from_path = result_path
 append_results = True
 
@@ -58,4 +63,4 @@ save_results_frequency = 1
 
 
 # Debug
-show_sequences = True
+show_sequences = False

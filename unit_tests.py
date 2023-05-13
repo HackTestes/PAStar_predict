@@ -168,7 +168,7 @@ class TestMethods(unittest.TestCase):
         executions_per_sample = 1
 
         results = []
-        for (sample_idx, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution, executions_per_sample):
+        for (sample_idx, current_execution, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution, executions_per_sample):
 
             # Check for samples per execution
             self.assertEqual(len(test), samples_per_execution)
@@ -326,7 +326,24 @@ class TestMethods(unittest.TestCase):
 
         # TODO Check if it repeats (list > len(dict))
 
+    def test_aggregate_generators(self):
+        seq_dictionary =['A', 'T', 'C', 'G']
+        seq_size = 10
+        num_sequences = 5
 
+        results = random_sequence_generator.aggregate_list_generation(seq_dictionary, seq_size, num_sequences, 50, 'most_different')
+
+        # Check number of lists
+        self.assertEqual(len(results), num_sequences)
+
+        # Check sequence size
+        self.assertEqual(len(results[0]), seq_size)
+
+        # Check if 50% is equal
+        for result in results:
+            self.assertTrue( result[0:5] == results[0][0:5] )
+
+        self.assertEqual(results, 1)
 
 
         

@@ -58,8 +58,6 @@ def most_different_list(seq_dictionary: [str], seq_size: int, list_size: int):
 
     return sequences
 
-
-
 # Not necessary
 def calculate_combinations(number_of_elements_in_setN, number_of_elements_in_the_combnation_set):
     # Combination formula
@@ -79,6 +77,30 @@ def calculate_col_similarity_value(num_cols, combinations):
 # Yes, this calculatio is safe to use, because it only takes in consideration the columns
 def calculate_min_cols_for_target_similarity(target_similarity_percentage, seq_size):
     return math.ceil(target_similarity_percentage / 100 * seq_size)
+
+def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: int, minimal_similarity_percentage: int = 0, seq_end = 'random'):
+    
+    equal_cols = calculate_min_cols_for_target_similarity(minimal_similarity_percentage, seq_size)
+    base_sequences = random_seq_list(seq_dictionary, equal_cols, 1) * list_size # This will be the base sequence
+
+    final_sequences = []
+
+    match seq_end:
+
+        case 'random':
+            random_list_end = random_seq_list(seq_dictionary, seq_size - equal_cols, list_size)
+
+            for idx, seq in enumerate(base_sequences):
+                final_sequences.append( seq +  random_list_end[idx])
+
+        case 'most_different':
+            most_different_list_end = most_different_list(seq_dictionary, seq_size - equal_cols, list_size)
+
+            for idx, seq in enumerate(base_sequences):
+                final_sequences.append( seq +  most_different_list_end[idx])
+
+    return final_sequences
+
 
 # DEPRECATED
 ## This will generate an entire list of random sequences, all unique
@@ -142,7 +164,7 @@ class ExecutionPolicy_MaxSimilarity:
 # Generate multiple sequences of the same size with random letters from the dictionary (DNA, RNA...)
 class ExecutionPolicy_EqualSizeSeq:
 
-    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0):
+    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, target_similarity = 0, seq_end = 'random'):
         # Remainder must be 0
         if (max_samples%samples_per_size != 0):
             raise Exception('Remainder must be 0 between max samples and unique seqences')
@@ -156,6 +178,8 @@ class ExecutionPolicy_EqualSizeSeq:
         self.max_samples = max_samples
         self.seq_per_execution = seq_per_execution
         self.executions_per_sample = execs_per_sample
+        self.target_similarity = target_similarity
+        self.sequence_end_pattern = seq_end
 
         # Initial state
         self.current_sample = start_sample_idx
@@ -178,7 +202,7 @@ class ExecutionPolicy_EqualSizeSeq:
             self.num_of_executions = 0
             self.update_seq_size()
 
-            self.sample = random_seq_list(self.dict, self.seq_size, self.seq_per_execution)
+            self.sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_end_pattern)
 
         if (self.current_sample == self.max_samples):
             raise StopIteration
@@ -195,13 +219,13 @@ class ExecutionPolicy_EqualSizeSeq:
         if current_step != 0:
             self.seq_size = self.initial_size + current_step * self.size_step # Since there is addition, we must have an if
 
-    # THis is in case we need to restore an old sequence set
+    # This is in case we need to restore an old sequence set
     def select_start_sequence(self):
         sample = None
 
         # You can safely generate a new one
         if configuration.last_sequence_set == None:
-            sample = random_seq_list(self.dict, self.seq_size, self.seq_per_execution)
+            sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_end_pattern)
 
         # There is a sequence to restore from
         else:
@@ -315,7 +339,7 @@ def load_execution_policy(execution_policy: str, database_reader = file_open):
         case 'load_database':
             return ExecutionPolicy_IterDatabase(configuration.seq_database_path, configuration.executions_per_sample, configuration.start_from_idx, configuration.start_from_execution_idx)
         case 'seq_random_equal_size':
-            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.executions_per_sample, configuration.start_from_idx, configuration.start_from_execution_idx)
+            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.executions_per_sample, configuration.start_from_idx, configuration.start_from_execution_idx, configuration.minimal_similarity_percentage , configuration.sequence_end_pattern)
         case 'seq_max_similarity_equal_size':
             return ExecutionPolicy_MaxSimilarity(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.executions_per_sample, configuration.start_from_idx)
         case _:
