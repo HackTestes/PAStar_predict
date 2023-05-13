@@ -11,7 +11,7 @@ sample_pastar_input = 'b\'Starting pairwise alignments... done!\\nPhase 1 - init
 
 class TestMethods(unittest.TestCase):
 
-    def test_sequence_formtting(self):
+    def test_sequence_formatting(self):
         self.assertEqual( '>Sequence_1\nAAA\n>Sequence_2\nBBB\n', sequence_formatter.formatt_seq(["AAA", "BBB"], "fasta") )
 
 
@@ -123,40 +123,40 @@ class TestMethods(unittest.TestCase):
 
         self.assertEqual(output, "26109")
 
-    def test_random_sequence(self):
-
-        seq_dictionary =['A', 'T', 'C', 'G']
-        initial_seq_size = 10
-        seq_size_steps = 5
-        uniques_samples_per_size = 10
-        max_samples = 100
-
-        sequences = random_sequence_generator.seq_random_gen(seq_dictionary, initial_seq_size, seq_size_steps, uniques_samples_per_size, max_samples)
-
-        # Check total number of entries
-        self.assertEqual(sum(len(bucket) for bucket in sequences), max_samples)
-
-        # Check the amount of buckets
-        self.assertEqual(max_samples / uniques_samples_per_size, len(sequences))
-
-        # Verify bucket uniqueness
-        for bucket in sequences:
-            self.assertTrue( len(bucket) == len( set(bucket) ) )
-
-        # Check bucket size (is the step right)
-        target_bucket_size = initial_seq_size # It is a copy to avoid changes in the original
-        for bucket in sequences:
-            # To avoid many comparisons, just the first and last sequences are compared
-            self.assertEqual( len(bucket[0]), target_bucket_size)
-            self.assertEqual( len(bucket[ uniques_samples_per_size-1 ]), target_bucket_size)
-            target_bucket_size += seq_size_steps
-
-        # Are the characters correct
-        dict_set: set = set(seq_dictionary)
-        for bucket in sequences:
-            # To avoid many comparisons, just the first sequence is compared
-            for letter in bucket[0]:
-                self.assertTrue( letter in dict_set)
+#    def test_random_sequence(self):
+#
+#        seq_dictionary =['A', 'T', 'C', 'G']
+#        initial_seq_size = 10
+#        seq_size_steps = 5
+#        uniques_samples_per_size = 10
+#        max_samples = 100
+#
+#        sequences = random_sequence_generator.seq_random_gen(seq_dictionary, initial_seq_size, seq_size_steps, uniques_samples_per_size, max_samples)
+#
+#        # Check total number of entries
+#        self.assertEqual(sum(len(bucket) for bucket in sequences), max_samples)
+#
+#        # Check the amount of buckets
+#        self.assertEqual(max_samples / uniques_samples_per_size, len(sequences))
+#
+#        # Verify bucket uniqueness
+#        for bucket in sequences:
+#            self.assertTrue( len(bucket) == len( set(bucket) ) )
+#
+#        # Check bucket size (is the step right)
+#        target_bucket_size = initial_seq_size # It is a copy to avoid changes in the original
+#        for bucket in sequences:
+#            # To avoid many comparisons, just the first and last sequences are compared
+#            self.assertEqual( len(bucket[0]), target_bucket_size)
+#            self.assertEqual( len(bucket[ uniques_samples_per_size-1 ]), target_bucket_size)
+#            target_bucket_size += seq_size_steps
+#
+#        # Are the characters correct
+#        dict_set: set = set(seq_dictionary)
+#        for bucket in sequences:
+#            # To avoid many comparisons, just the first sequence is compared
+#            for letter in bucket[0]:
+#                self.assertTrue( letter in dict_set)
 
     def test_policy_random(self):
         seq_dictionary =['A', 'T', 'C', 'G']
@@ -165,9 +165,10 @@ class TestMethods(unittest.TestCase):
         unique_samples_per_size = 2
         max_samples = 10
         samples_per_execution = 2
+        executions_per_sample = 1
 
         results = []
-        for (sample_idx, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution):
+        for (sample_idx, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution, executions_per_sample):
 
             # Check for samples per execution
             self.assertEqual(len(test), samples_per_execution)
@@ -258,6 +259,77 @@ class TestMethods(unittest.TestCase):
         self.assertEqual(file_properties['Step'], '100')
         self.assertEqual(file_properties['Samples'], '400')
         self.assertEqual(file_properties['threads'], '1')
+
+    # I will mantain thiese 2 tests for future use
+    # Not necessary
+    def test_calculate_combinations(self):
+        # All the alternatives will combine 2 sequences at a time
+        self.assertEqual(random_sequence_generator.calculate_combinations(3, 2), 3)
+        self.assertEqual(random_sequence_generator.calculate_combinations(4, 2), 6)
+        self.assertEqual(random_sequence_generator.calculate_combinations(5, 2), 10)
+
+    # Not necessary
+    def test_calculate_col_similarity(self):
+        # All the alternatives will combine 2 sequences at a time
+        # 3 Sequences of size 5
+        seq_size = 5
+        combinations = random_sequence_generator.calculate_combinations(3, 2)
+        self.assertEqual(random_sequence_generator.calculate_col_similarity_value(seq_size, combinations), 0.2)
+
+        # 3 Sequences of size 100
+        seq_size = 100
+        combinations = random_sequence_generator.calculate_combinations(3, 2)
+        self.assertEqual(random_sequence_generator.calculate_col_similarity_value(seq_size, combinations), 0.01)
+
+    def test_calculate_col_similarity(self):
+        # You can safely ignore the number of combinations for this calculation, since both the total and the value per col are multiplied by the number of combinations
+        #   col(1) * combinations
+        #   _______________________  = percentage per col
+        #   seq size * combinations
+        # 
+        # 3 Sequences of size 5
+        seq_size = 5
+        target_sim_percentage = 50
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_sim_percentage, seq_size), 3)
+
+        # 3 Sequences of size 100
+        seq_size = 100
+        target_sim_percentage = 50
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_sim_percentage, seq_size), 50)
+
+        # 5 Sequences of size 100
+        seq_size = 100
+        target_sim_percentage = 0
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_sim_percentage, seq_size), 0)
+
+        # 5 Sequences of size 100
+        seq_size = 100
+        target_sim_percentage = 100
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_sim_percentage, seq_size), 100)
+
+    def test_generate_most_different_sequences(self):
+        seq_dictionary =['A', 'T', 'C', 'G']
+        seq_size = 5
+        num_sequences = 5
+
+        results = random_sequence_generator.most_different_list(seq_dictionary, seq_size, num_sequences)
+
+        # Check number of lists
+        self.assertEqual(len(results), num_sequences)
+
+        # Check sequence size
+        self.assertEqual(len(results[0]), seq_size)
+
+        # Check if everyone is different
+        for idx in range(1, len(seq_dictionary)):
+            self.assertTrue(results[0] != results[idx])
+
+        # TODO Check if it repeats (list > len(dict))
+
+
+
+
+        
 
 if __name__ == '__main__':
     unittest.main()

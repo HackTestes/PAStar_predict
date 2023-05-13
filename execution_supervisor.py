@@ -154,7 +154,7 @@ def update_timeout(tries):
 def main():
 
     print(f'Seq-> Max size: {configuration.max_size} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per step: {configuration.unique_samples_per_size}\n')
-    print(f'Command:{configuration.command} \nDatabase: {configuration.seq_database_name} \nResults file: {configuration.result_path}\n')
+    print(f'Command:{configuration.command} \nDatabase path: {configuration.seq_database_path} \nResults path: {configuration.result_path}\n')
     print(f'Execution policy: {configuration.execution_policy}')
     print(f'Restore execution: {configuration.restore_execution}')
     print(f'Write to files without asking: {configuration.write_to_file_without_asking}')
@@ -175,7 +175,7 @@ def main():
     else:
         # Start with new results, so you need to delete the old one
         if os.path.exists(configuration.result_path):
-            raise Exception('Results already exist!')
+            #raise Exception('Results already exist!')
             #os.remove(configuration.result_path)
             print('PREVIOUS RESULTS DELETED!')
 
@@ -191,10 +191,15 @@ def main():
     tmp_file_path = "/tmp/pastar_input.fasta"
     with TmpFile(tmp_file_path) as tmp_file:
 
-        # Loop over the database and execute the command
-        for (current_sample, test_input) in LoopGenerator:
+        previous_sample_idx = None
 
-            print(f"\n\nCurrent sample: {current_sample}")
+        # Loop over the database and execute the command
+        for (current_sample, current_execution, test_input) in LoopGenerator:
+
+            print(f"Current sample: {current_sample} \tCurrent execution: {current_execution}")
+
+            # Trim the test input in case we are just interested in some sequences
+            test_input[0:configuration.samples_per_execution]
 
             # Build input
             #tmp_file_path = "/tmp/pastar_input.fasta"
@@ -238,6 +243,10 @@ def main():
             # Misc (I don1t know the meaning of this)
             g_score = pastar_get_g_score(result['stdout'])
 
+            # Debug
+            if configuration.show_sequences == True:
+                print(f'Sequences: {test_input}')
+
             print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tG: {g_score} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
             results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
@@ -250,8 +259,8 @@ def main():
                 print('RESULTS SAVED!')
 
                 # Do NOT write in the original database
-                if(configuration.execution_policy != 'load_database'):
-                    with open(configuration.seq_database_path, 'a') as file:
+                if(configuration.execution_policy != 'load_database' and previous_sample_idx != current_sample and current_execution == 1):
+                    with open(configuration.seq_database_path, 'a') as file: # TODO -> Maybe this file open can be placed before to avoid multiple closes
 
                         # Join will not add the \n if there is only one input (1 set of 3 sequences for instance)
                         if len(seq_input) != 1:
@@ -261,6 +270,13 @@ def main():
 
                         seq_input.clear()
                         print('SEQUENCE DATABASE SAVED!')
+
+            # This avoids building up inputs from other executions
+            if previous_sample_idx == current_sample:
+                seq_input.clear()
+
+            previous_sample_idx = current_sample
+            print("\n\n")
 
 
     # Save results in a specific format

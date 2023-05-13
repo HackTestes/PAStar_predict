@@ -8,11 +8,11 @@ import sequence_formatter
 import random_sequence_generator
 
 
-results = pd.read_hdf('./data/SeqResults-SeqDatabase-MaxSize_200.0-Seq_3-SizeSample_5-Step_100-Samples_5.seq-threads_1.hdf')
+results = pd.read_hdf('./data/SeqResults-SeqDatabase-MaxSize_2500-Seq_3-SizeSample_1-Step_500-Samples_4-Execs_3-threads_24.hdf')
 results.index = range(len(results))
 print(results)
 
-sequences_path = 'SeqDatabase-MaxSize_200.0-Seq_3-SizeSample_5-Step_100-Samples_5.seq'
+sequences_path = './sequences/SeqDatabase-MaxSize_2500-Seq_3-SizeSample_1-Step_500-Samples_4-Execs_3.seq'
 
 with open(configuration.seq_database_path, 'r', encoding='utf-8') as file:
     for i, line in enumerate(file):

@@ -7,14 +7,46 @@ def get_dict_from_file_name(file_name):
 
     return file_dict
 
-# This function alters global variables, take extra care
+# Not optimized code - Yeah, it's the slowest approach
+# It just reads line by line and stores the last one
+# Simple, but slow
+# Alternative: https://stackoverflow.com/questions/46258499/how-to-read-the-last-line-of-a-file-in-python 
+def get_last_sequence_set(file_path):
+    last_sequence = ''
+    tmp_line = ''
+
+    with open(file_path, 'r', encoding='utf-8') as file_database:
+
+        while True:
+            tmp_line = file_database.readline().replace('\n','')
+
+            if len(tmp_line) != 0:
+                last_sequence = tmp_line
+
+            else:
+                break
+
+    return last_sequence.split('-')
+
+# This function alters global variables from file name and contents, take extra care
 def restore_execution():
     incomplete_results = pd.read_hdf(configuration.restore_from_path)
 
     file_properties = get_dict_from_file_name(configuration.result_file_name)
 
-    # Restore the current index
-    configuration.start_from_idx = len(incomplete_results)
+    # Restore executions per sample 
+    configuration.executions_per_sample = int(file_properties['Execs'])
+
+    # Restore the current index (sample and execution)
+    configuration.start_from_idx = int(len(incomplete_results)/configuration.executions_per_sample) # Current sample
+
+    configuration.start_from_execution_idx = len(incomplete_results) - (configuration.start_from_idx * configuration.executions_per_sample) # How many executions were done on this sample
+
+    if configuration.start_from_execution_idx != 0:
+        configuration.last_sequence_set = get_last_sequence_set(configuration.seq_database_path)
+
+    # Original
+    #configuration.start_from_idx = len(incomplete_results)
 
     # Restore initial size
     configuration.initial_seq_size = int(incomplete_results.Seq_size.iloc[0])
