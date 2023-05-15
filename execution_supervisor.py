@@ -175,7 +175,7 @@ def main():
     else:
         # Start with new results, so you need to delete the old one
         if os.path.exists(configuration.result_path):
-            #raise Exception('Results already exist!')
+            raise Exception('Results already exist!')
             #os.remove(configuration.result_path)
             print('PREVIOUS RESULTS DELETED!')
 
@@ -249,7 +249,7 @@ def main():
 
             print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tG: {g_score} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
-            results = pd.concat([ results, pd.DataFrame(dict(Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
+            results = pd.concat([ results, pd.DataFrame(dict(SampleID=[current_sample], Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
 
             # Save results in the disk and clear what is in memory (append)
@@ -282,15 +282,16 @@ def main():
     # Save results in a specific format
     print('\n\n', results, sep='')
 
-    if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
-        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
-        print('RESULTS SAVED!')
-
-        # Do NOT overwrite the original database
-        if(configuration.execution_policy != 'load_database'):
-            with open(configuration.seq_database_path, 'w') as file:
-                file.write( '\n'.join(seq_input) )
-                print('SEQUENCE DATABASE SAVED!')
+# This should be removed or updated (append is always superior though)
+#    if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
+#        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
+#        print('RESULTS SAVED!')
+#
+#        # Do NOT overwrite the original database
+#        if(configuration.execution_policy != 'load_database'):
+#            with open(configuration.seq_database_path, 'w') as file:
+#                file.write( '\n'.join(seq_input) )
+#                print('SEQUENCE DATABASE SAVED!')
 
 if __name__ == '__main__':
     main()
