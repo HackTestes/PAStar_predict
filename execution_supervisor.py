@@ -41,7 +41,7 @@ def execute_pastar(command: [str], seq_size=0):
     current_timeout = configuration.timeout + (configuration.timeout_time_per_step * math.floor(seq_size / configuration.timeout_extension_step_size))
 
     try:
-        pastar_output = subprocess.check_output(command, shell=False, timeout=current_timeout)
+        pastar_output = subprocess.check_output(command, shell=False, timeout=current_timeout, stderr=subprocess.STDOUT)
 
     except subprocess.TimeoutExpired:
         #if (len(pastar_output) == 0):
@@ -52,15 +52,19 @@ def execute_pastar(command: [str], seq_size=0):
     except subprocess.CalledProcessError as e:
         # Change in case of errors
         error_code = e.returncode
+        print('ERROR\n', e.stdout)
 
     return {'stdout': str(pastar_output), 'exit_code': error_code}
+
+def get_bin_time_MaxRSS(pastar_output: str):
+    return pastar_output.replace("(", "").replace(")", "").split("\\n")[-2]
 
 def pastar_get_node_info(pastar_output: str):
     output = pastar_output.replace("(", '').replace(")", '')
 
     # Input comes with LETTERS as \\t and \\n, insted of the byte long representation
     output = output.split("\\n")
-    output = output[ len(output)-2 ].split("\\t")
+    output = output[ len(output)-3 ].split("\\t")
     output.pop(0)
 
     node_info: dict = {}
@@ -222,8 +226,10 @@ def main():
                 print('FAILED EXECUTION')
                 continue
 
+            print(f'File size: {os.stat(tmp_file_path).st_size}')
+
             # Max RSS -> maximum amount of physical memory used
-            max_rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+            max_rss = get_bin_time_MaxRSS(result['stdout'])#resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])['Total']

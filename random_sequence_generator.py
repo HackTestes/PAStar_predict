@@ -5,7 +5,7 @@ import gzip
 import configuration
 import math
 
-def random_seq(seq_dictionary: [str], seq_size: int):
+def random_seq_original(seq_dictionary: [str], seq_size: int):
     random_sequence = ""
 
     # Create the random sequence
@@ -14,9 +14,25 @@ def random_seq(seq_dictionary: [str], seq_size: int):
 
     return random_sequence
 
+# experimental
+def random_seq(seq_dictionary: [str], seq_size: int):
+    random_sequence = ""
+
+    # Cehck for empty sequences
+    if seq_size == 0:
+        return random_sequence
+
+    # Create the random sequence
+    letters = random.SystemRandom().randrange(1, seq_size)
+    while len(random_sequence) < seq_size:
+        random_sequence += seq_dictionary[random.SystemRandom().randrange(len(seq_dictionary))] * 1#random.SystemRandom().randrange(seq_size) # Get a random letter from the dictionary
+
+    return random_sequence[0:seq_size]
+
 def random_seq_list(seq_dictionary: [str], seq_size: int, list_size: int):
     current_unique_samples = 0
-    unique_sequences_set: set = {''}
+    #unique_sequences_set: set = {''}
+    unique_sequences_set = []
     unique_sequences_set.clear()
 
     # Small samples must have enough combinations to get the necessary amount of unique combinations or else, this becomes an infinite loop!-> TODO: This logic might need more work to avoid this problem
@@ -25,12 +41,13 @@ def random_seq_list(seq_dictionary: [str], seq_size: int, list_size: int):
         # Create the random sequence
         current_seq = random_seq(seq_dictionary, seq_size)
 
-        # Verify uniqueness
-        if( current_seq in unique_sequences_set ):
-            continue
+        # Verify uniqueness -> Not necessary since sequences can have 100% similarity
+        #if( current_seq in unique_sequences_set ):
+        #    continue
 
         # Add to the set
-        unique_sequences_set.add(current_seq)
+        #unique_sequences_set.add(current_seq)
+        unique_sequences_set.append(current_seq)
         current_unique_samples += 1
 
     return list(unique_sequences_set)
@@ -154,16 +171,12 @@ def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: i
             random_list_end = random_seq_list(seq_dictionary, seq_size - equal_cols, list_size)
 
             for idx, seq in enumerate(base_sequences):
-                #final_sequences.append( seq +  random_list_end[idx])
-                #final_sequences.append( merge_sequence_part(1, [seq, random_list_end[idx]]) )
                 final_sequences.append( select_merge_method(merge_method, [seq, random_list_end[idx]], num_letters) )
 
         case 'most_different':
             most_different_list_end = most_different_list(seq_dictionary, seq_size - equal_cols, list_size)
 
             for idx, seq in enumerate(base_sequences):
-                #final_sequences.append( seq +  most_different_list_end[idx])
-                #final_sequences.append( merge_sequence_part(1, [seq, most_different_list_end[idx]]) )
                 final_sequences.append( select_merge_method(merge_method, [seq, most_different_list_end[idx]], num_letters) )
 
     return final_sequences
