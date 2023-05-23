@@ -23,9 +23,17 @@ def random_seq(seq_dictionary: [str], seq_size: int):
         return random_sequence
 
     # Create the random sequence
-    letters = random.SystemRandom().randrange(1, seq_size)
+    previous_letter_idx = None
     while len(random_sequence) < seq_size:
-        random_sequence += seq_dictionary[random.SystemRandom().randrange(len(seq_dictionary))] * 1#random.SystemRandom().randrange(seq_size) # Get a random letter from the dictionary
+        letter_idx = random.SystemRandom().randrange(len(seq_dictionary))
+
+        random_sequence += seq_dictionary[letter_idx] * random.SystemRandom().randrange(seq_size)
+
+#        # Do not repeat any letters
+#        if letter_idx != previous_letter_idx:
+#            random_sequence += seq_dictionary[letter_idx] * int(seq_size/10)#random.SystemRandom().randrange(int(seq_size/5)) # Get a random letter from the dictionary * letter_size -> if this value is equal to 1, it will generate harder sequences to solve
+#
+#        previous_letter_idx = letter_idx
 
     return random_sequence[0:seq_size]
 

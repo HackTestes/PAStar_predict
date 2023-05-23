@@ -25,6 +25,17 @@ class TmpFile:
         self.read_handle.close()
         os.remove(self.path)
 
+    def read_file(self):
+        # Make sure to start at file beginning
+        self.read_handle.seek(0)
+        file_contents = self.read_handle.read()
+
+        # Return to the original position, so subsequent reads don't return incorrect results
+        self.read_handle.seek(0)
+
+        return file_contents
+
+
 # Truncate file and write the new input
 def clear_and_replace(new_input: str, file_handle):
     file_handle.truncate(0) # Rezise to 0
@@ -157,7 +168,7 @@ def update_timeout(tries):
 
 def main():
 
-    print(f'Seq-> Max size: {configuration.max_size} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per step: {configuration.unique_samples_per_size}\n')
+    print(f'Seq-> Max size: {configuration.max_size} \tSamples:{configuration.max_samples} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per size: {configuration.unique_samples_per_size}\n')
     print(f'Command:{configuration.command} \nDatabase path: {configuration.seq_database_path} \nResults path: {configuration.result_path}\n')
     print(f'Execution policy: {configuration.execution_policy}')
     print(f'Restore execution: {configuration.restore_execution}')
@@ -178,16 +189,13 @@ def main():
 
     else:
         # Start with new results, so you need to delete the old one
-        if os.path.exists(configuration.result_path):
+        if os.path.exists(configuration.result_path) and configuration.write_to_file_without_asking == True:
             raise Exception('Results already exist!')
-            #os.remove(configuration.result_path)
             print('PREVIOUS RESULTS DELETED!')
 
         # Start with a new seq database, so you need to delete the old one
-        if os.path.exists(configuration.seq_database_path) and configuration.execution_policy != 'load_database':
+        if os.path.exists(configuration.seq_database_path) and configuration.execution_policy != 'load_database' and configuration.write_to_file_without_asking == True:
             raise Exception('Sequence database already exist!')
-            #os.remove(configuration.seq_database_path)
-            print('PREVIOUS SEQUENCE DATABASE DELETED!')
 
     # Create OR load sequence database
     LoopGenerator = random_sequence_generator.load_execution_policy(configuration.execution_policy)
@@ -200,10 +208,10 @@ def main():
         # Loop over the database and execute the command
         for (current_sample, current_execution, test_input) in LoopGenerator:
 
-            print(f"Current sample: {current_sample} \tCurrent execution: {current_execution}")
+            print(f"Current sample: {current_sample} / {configuration.max_samples-1} \tCurrent execution: {current_execution}")
 
             # Trim the test input in case we are just interested in some sequences
-            test_input[0:configuration.samples_per_execution]
+            test_input = test_input[0:configuration.samples_per_execution]
 
             # Build input
             #tmp_file_path = "/tmp/pastar_input.fasta"
@@ -227,9 +235,12 @@ def main():
                 continue
 
             print(f'File size: {os.stat(tmp_file_path).st_size}')
+            if configuration.show_file:
+                print(f'Squence Tmp File:\n--------------------------\n\n{tmp_file.read_file()}\n\n--------------------------\n')
 
             # Max RSS -> maximum amount of physical memory used
-            max_rss = get_bin_time_MaxRSS(result['stdout'])#resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+            # This ideia might help: https://stackoverflow.com/questions/743955/memory-usage-of-a-child-process (using 2 forks before measuring the MaxRSS, but GNU time solves the problem)
+            max_rss = int(get_bin_time_MaxRSS(result['stdout']))#resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
 
             # Node info (max)
             node_info = pastar_get_node_info(result['stdout'])['Total']
@@ -283,6 +294,7 @@ def main():
 
             previous_sample_idx = current_sample
             print("\n\n")
+
 
 
     # Save results in a specific format
