@@ -208,7 +208,7 @@ def main():
         # Loop over the database and execute the command
         for (current_sample, current_execution, test_input) in LoopGenerator:
 
-            print(f"Current sample: {current_sample} / {configuration.max_samples-1} \tCurrent execution: {current_execution}")
+            print(f"Current sample: {current_sample} / {configuration.max_samples} \tCurrent execution: {current_execution}")
 
             # Trim the test input in case we are just interested in some sequences
             test_input = test_input[0:configuration.samples_per_execution]
@@ -220,6 +220,14 @@ def main():
 
             #with TmpFile(tmp_file_path) as tmp_file:
             clear_and_replace(sequence_formatter.formatt_seq(test_input, "fasta"), tmp_file.write_handle)
+
+            print(f'File size: {os.stat(tmp_file_path).st_size}')
+            if configuration.show_file:
+                print(f'Squence Tmp File:\n--------------------------\n\n{tmp_file.read_file()}\n\n--------------------------\n')
+
+            # Debug
+            if configuration.show_sequences == True:
+                print(f'Sequences: {test_input}')
 
             # Keep trying in case of erros until you hit the limit
             while(exit_code != 0 and tries < configuration.tries_per_execution):
@@ -233,10 +241,6 @@ def main():
             if(exit_code != 0):
                 print('FAILED EXECUTION')
                 continue
-
-            print(f'File size: {os.stat(tmp_file_path).st_size}')
-            if configuration.show_file:
-                print(f'Squence Tmp File:\n--------------------------\n\n{tmp_file.read_file()}\n\n--------------------------\n')
 
             # Max RSS -> maximum amount of physical memory used
             # This ideia might help: https://stackoverflow.com/questions/743955/memory-usage-of-a-child-process (using 2 forks before measuring the MaxRSS, but GNU time solves the problem)
@@ -259,10 +263,6 @@ def main():
 
             # Misc (I don1t know the meaning of this)
             g_score = pastar_get_g_score(result['stdout'])
-
-            # Debug
-            if configuration.show_sequences == True:
-                print(f'Sequences: {test_input}')
 
             print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tG: {g_score} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
@@ -301,10 +301,11 @@ def main():
     print('\n\n', results, sep='')
 
 # This should be removed or updated (append is always superior though)
-#    if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
-#        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
-#        print('RESULTS SAVED!')
-#
+# Careful with the sequence update, since multiple executions might 
+    if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
+        results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
+        print('RESULTS SAVED!')
+
 #        # Do NOT overwrite the original database
 #        if(configuration.execution_policy != 'load_database'):
 #            with open(configuration.seq_database_path, 'w') as file:

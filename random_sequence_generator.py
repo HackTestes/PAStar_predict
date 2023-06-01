@@ -5,7 +5,7 @@ import gzip
 import configuration
 import math
 
-def random_seq_original(seq_dictionary: [str], seq_size: int):
+def random_seq(seq_dictionary: [str], seq_size: int):
     random_sequence = ""
 
     # Create the random sequence
@@ -15,7 +15,7 @@ def random_seq_original(seq_dictionary: [str], seq_size: int):
     return random_sequence
 
 # experimental
-def random_seq(seq_dictionary: [str], seq_size: int):
+def random_seq_experimental(seq_dictionary: [str], seq_size: int):
     random_sequence = ""
 
     # Cehck for empty sequences
@@ -26,14 +26,14 @@ def random_seq(seq_dictionary: [str], seq_size: int):
     previous_letter_idx = None
     while len(random_sequence) < seq_size:
         letter_idx = random.SystemRandom().randrange(len(seq_dictionary))
+        
+        #random_sequence += seq_dictionary[letter_idx] * random.SystemRandom().randrange(seq_size)
 
-        random_sequence += seq_dictionary[letter_idx] * random.SystemRandom().randrange(seq_size)
+        # Do not repeat any letters
+        if letter_idx != previous_letter_idx:
+            random_sequence += seq_dictionary[letter_idx] * int(seq_size/seq_size)#random.SystemRandom().randrange(int(seq_size/5)) # Get a random letter from the dictionary * letter_size -> if this value is equal to 1, it will generate harder sequences to solve
 
-#        # Do not repeat any letters
-#        if letter_idx != previous_letter_idx:
-#            random_sequence += seq_dictionary[letter_idx] * int(seq_size/10)#random.SystemRandom().randrange(int(seq_size/5)) # Get a random letter from the dictionary * letter_size -> if this value is equal to 1, it will generate harder sequences to solve
-#
-#        previous_letter_idx = letter_idx
+        previous_letter_idx = letter_idx
 
     return random_sequence[0:seq_size]
 
@@ -348,7 +348,7 @@ class SequenceDatabase:
 # Load a database of sequences for execution
 class ExecutionPolicy_IterDatabase:
 
-    def __init__(self, seq_database_path: str, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0):
+    def __init__(self, seq_database_path: str, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, max_samples = configuration.max_samples):
 
         self.seq_database = SequenceDatabase(seq_database_path, start_sample_idx)
         self.executions_per_sample = execs_per_sample
@@ -359,6 +359,8 @@ class ExecutionPolicy_IterDatabase:
 
         # Store results for the same sample
         self.sample = self.seq_database.get()
+
+        self.max_samples = max_samples
 
         print('Database loaded')
 
@@ -373,7 +375,7 @@ class ExecutionPolicy_IterDatabase:
             self.num_of_executions = 0
             self.sample = self.seq_database.get()
 
-        if (self.sample == None):
+        if (self.sample == None or (self.current_sample > self.max_samples and self.num_of_executions == 0)):
             raise StopIteration
 
         self.num_of_executions += 1
