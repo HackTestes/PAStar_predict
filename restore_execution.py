@@ -61,6 +61,6 @@ def restore_execution():
     configuration.samples_per_execution = int(incomplete_results.Seq_qtd.iloc[0])
 
     # Restore max samples
-    configuration.max_samples = int(file_properties['Samples'])
+    configuration.max_samples = int(file_properties['Samples']) # TODO test -1
 
     print(f'Idx: {configuration.start_from_idx} \t InitialSeqSize: {configuration.initial_seq_size} \t SeqSizeStep: {configuration.seq_size_step} \t SamplesPerSize: {configuration.unique_samples_per_size} \t Seq: {configuration.samples_per_execution} \t MaxSamples: {configuration.max_samples} \t ')

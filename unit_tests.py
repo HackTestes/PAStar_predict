@@ -168,7 +168,13 @@ class TestMethods(unittest.TestCase):
         executions_per_sample = 1
 
         results = []
-        for (sample_idx, current_execution, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary, initial_seq_size, seq_size_step, unique_samples_per_size, max_samples, samples_per_execution, executions_per_sample):
+        for (sample_idx, current_execution, test) in random_sequence_generator.ExecutionPolicy_EqualSizeSeq(seq_dictionary= seq_dictionary,
+                                                                                                            seq_size= initial_seq_size,
+                                                                                                            seq_size_step= seq_size_step,
+                                                                                                            samples_per_size= unique_samples_per_size,
+                                                                                                            max_samples= max_samples,
+                                                                                                            seq_per_execution= samples_per_execution,
+                                                                                                            execs_per_sample= executions_per_sample):
 
             # Check for samples per execution
             self.assertEqual(len(test), samples_per_execution)
@@ -332,7 +338,7 @@ class TestMethods(unittest.TestCase):
         seq_size = 10
         num_sequences = 5
 
-        results = random_sequence_generator.aggregate_list_generation(seq_dictionary, seq_size, num_sequences, 50, 'most_different')
+        results = random_sequence_generator.aggregate_list_generation(seq_dictionary=seq_dictionary, seq_size=seq_size, list_size=num_sequences, minimal_similarity_percentage=50, seq_end='most_different')
 
         # Check number of lists
         self.assertEqual(len(results), num_sequences)
@@ -365,8 +371,40 @@ class TestMethods(unittest.TestCase):
         self.assertEqual(len(results), 10)
         self.assertEqual(results, 'AGTTTTTTTT')
 
+    def test_get_cols_for_target_similarity(self):
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_similarity_percentage=50, seq_size=100), 50)
+        self.assertEqual(random_sequence_generator.calculate_min_cols_for_target_similarity(target_similarity_percentage=50, seq_size=5), 3)
 
-        
+    def test_get_percentage_of_equal_cols(self):
+        self.assertEqual(random_sequence_generator.get_percentage_of_equal_cols(['AAAAA', 'AAAAA', 'AAAAA']), 100)
+        self.assertEqual(random_sequence_generator.get_percentage_of_equal_cols(['AAAAACCCCC', 'AAAAAGGGGG', 'AAAAATTTTT']), 50)
+        self.assertEqual(random_sequence_generator.get_percentage_of_equal_cols(['CCCCC', 'GGGGG', 'TTTTT']), 0)
+        self.assertEqual(random_sequence_generator.get_percentage_of_equal_cols(['CCCCA', 'GGGGA', 'TTTTA']), 20)
+
+    def test_stochastic_pos_generator(self):
+        seq_dictionary =['A', 'T', 'C', 'G']
+        seq_size = 10
+        num_sequences = 5
+        minimal_similarity_percentage = 90
+        equal_cols = random_sequence_generator.calculate_min_cols_for_target_similarity(minimal_similarity_percentage, seq_size)
+
+        result_seqs = random_sequence_generator.stochastic_position_seq_list(seq_dictionary=seq_dictionary, seq_size=seq_size, list_size=num_sequences, equal_cols=equal_cols)
+
+        print(result_seqs)
+        print(f'equal cols:  {random_sequence_generator.get_percentage_of_equal_cols(result_seqs)}%')
+
+        # Verify sequences' size
+        for seq in result_seqs:
+            self.assertEqual(seq_size, len(seq))
+
+        # Verify number of equal cols
+        self.assertEqual(50, random_sequence_generator.get_percentage_of_equal_cols(result_seqs))
+
+        # Verify number of sequences
+        self.assertEqual(num_sequences, len(result_seqs))
+
+        SELF.assertTrue(False)
+
 
 if __name__ == '__main__':
     unittest.main()

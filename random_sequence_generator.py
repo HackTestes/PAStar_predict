@@ -4,6 +4,7 @@ import pandas as pd
 import gzip
 import configuration
 import math
+import itertools
 
 def random_seq(seq_dictionary: [str], seq_size: int):
     random_sequence = ""
@@ -60,6 +61,37 @@ def random_seq_list(seq_dictionary: [str], seq_size: int, list_size: int):
 
     return list(unique_sequences_set)
 
+# The idea of such function is to change a set of X cols (respecting a minimal simlarity), selecting the psosition randomly
+# 
+def stochastic_position_seq_list(seq_dictionary: [str], seq_size: int, list_size: int, equal_cols: int):
+
+    sequences = []
+    for seq in range(list_size):
+        sequences.append([seq_dictionary[0]] * seq_size)
+
+    available_positions = list(range(seq_size))
+
+    for col in range(seq_size-equal_cols):
+
+        # Col to be changed
+        col_pos = available_positions.pop(random.SystemRandom().randrange(len(available_positions)))
+        #print('DEBUG col_pos ', col_pos)
+
+        # Select letters to change each sequence col
+        for seq in sequences:
+            seq[col_pos] = seq_dictionary[random.SystemRandom().randrange(len(seq_dictionary))]
+
+            #print('DEBUG seq[col_pos] ', seq[col_pos])
+
+    # Format arrays as strings
+    result_sequences = []
+
+    for seq in sequences:
+        result_sequences.append(''.join(seq))
+
+    return result_sequences
+
+
 def most_different_list(seq_dictionary: [str], seq_size: int, list_size: int):
     sequences = []
     tmp_dictionary = seq_dictionary.copy()
@@ -99,9 +131,54 @@ def calculate_col_similarity_value(num_cols, combinations):
 
     return similarity_of_col
 
-# Yes, this calculatio is safe to use, because it only takes in consideration the columns
+# Yes, this calculation is safe to use, because it only takes in consideration the columns
 def calculate_min_cols_for_target_similarity(target_similarity_percentage, seq_size):
     return math.ceil(target_similarity_percentage / 100 * seq_size)
+
+# Assume sequences of same size
+#def get_lazy_similarity(sequences: [str]):
+#    total_size = 0
+#    matches = 0
+#
+#    # Get total size
+#    for seq in sequences:
+#        total_size += len(seq)
+#
+#    # Calculate lazy similarity ("lazy", because we don't do any alignment here)
+#    for main_seq_idx in range(len(sequences)):
+#
+#        for compared_seq_idx in range(main_seq_idx+1, len(sequences)):
+#
+#            for letter_idx in range(len(sequences[main_seq_idx])):
+#                if sequences[main_seq_idx][letter_idx] == sequences[compared_seq_idx][letter_idx]:
+#                    matches += 1
+#
+#    similarity = (matches / total_size) * 100 # Percentage
+#
+#    return similarity
+
+# Assume sequences of same size
+def get_percentage_of_equal_cols(sequences: [str]):
+
+    equal_cols = 0
+    num_of_cols = len(sequences[0])
+
+    for col_idx in range(num_of_cols):
+
+        unequal_col = False
+
+        for seq in sequences:
+            if sequences[0][col_idx] != seq[col_idx]:
+                unequal_col = True
+                break
+
+        if unequal_col == False:
+            equal_cols += 1
+
+    equal_cols_percentage = (equal_cols / num_of_cols) * 100
+
+    return equal_cols_percentage
+
 
 def merge_sequence_part(num_letters: int, sequence_parts_array):
 
@@ -166,14 +243,38 @@ def select_merge_method(merge_method, sequence_parts, num_letters = 1):
             raise Exception('Invalid merge method')
 
 
-def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: int, minimal_similarity_percentage: int = 0, seq_end = 'random', merge_method = 'add', num_letters = 1):
-    
+def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: int, minimal_similarity_percentage: int = 0, seq_start = 'random', seq_end = 'random', merge_method = 'add', num_letters = 1):
+ 
     equal_cols = calculate_min_cols_for_target_similarity(minimal_similarity_percentage, seq_size)
-    base_sequences = random_seq_list(seq_dictionary, equal_cols, 1) * list_size # This will be the base sequence
-
     final_sequences = []
+    base_sequences = None
 
+    # Select how the start of the sequences will be generated
+    match seq_start:
+
+        case 'equal':
+            base_sequences = [[seq_dictionary[0]] * equal_cols] * list_size # DANGER: all arrays might share the same memory
+
+        # Alba's method
+        case 'stochastic_pos':
+
+            # generate sequences here
+            final_sequences = stochastic_position_seq_list(seq_dictionary, seq_size, list_size, equal_cols)
+
+            return final_sequences
+
+        case 'random':
+            base_sequences = random_seq_list(seq_dictionary, equal_cols, 1) * list_size # This will be the base sequence
+
+        case _:
+            raise Exception('Invalid start sequence pattern')
+
+
+    # Select how the end of the sequence will be generated
     match seq_end:
+
+        case 'none':
+            pass
 
         case 'random':
             random_list_end = random_seq_list(seq_dictionary, seq_size - equal_cols, list_size)
@@ -186,6 +287,9 @@ def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: i
 
             for idx, seq in enumerate(base_sequences):
                 final_sequences.append( select_merge_method(merge_method, [seq, most_different_list_end[idx]], num_letters) )
+
+        case _:
+            raise Exception('Invalid end sequence pattern')
 
     return final_sequences
 
@@ -253,7 +357,7 @@ def aggregate_list_generation(seq_dictionary: [str], seq_size: int, list_size: i
 # Generate multiple sequences of the same size with random letters from the dictionary (DNA, RNA...)
 class ExecutionPolicy_EqualSizeSeq:
 
-    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, target_similarity = 0, seq_end = 'random', merge_method = 'add', num_letters = 1):
+    def __init__(self, seq_dictionary: [str], seq_size: int, seq_size_step: int, samples_per_size: int, max_samples: int, seq_per_execution: int, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, target_similarity = 0, seq_start = 'random', seq_end = 'random', merge_method = 'add', num_letters = 1):
         # Remainder must be 0
         if (max_samples%samples_per_size != 0):
             raise Exception('Remainder must be 0 between max samples and unique seqences')
@@ -268,6 +372,7 @@ class ExecutionPolicy_EqualSizeSeq:
         self.seq_per_execution = seq_per_execution
         self.executions_per_sample = execs_per_sample
         self.target_similarity = target_similarity
+        self.sequence_start_pattern = seq_start
         self.sequence_end_pattern = seq_end
         self.merge_method = merge_method
         self.num_letters = num_letters
@@ -293,7 +398,7 @@ class ExecutionPolicy_EqualSizeSeq:
             self.num_of_executions = 0
             self.update_seq_size()
 
-            self.sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_end_pattern, self.merge_method, self.num_letters)
+            self.sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_start_pattern, self.sequence_end_pattern, self.merge_method, self.num_letters)
 
         if (self.current_sample == self.max_samples):
             raise StopIteration
@@ -316,7 +421,7 @@ class ExecutionPolicy_EqualSizeSeq:
 
         # You can safely generate a new one
         if configuration.last_sequence_set == None:
-            sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_end_pattern, self.merge_method, self.num_letters)
+            sample = aggregate_list_generation(self.dict, self.seq_size, self.seq_per_execution, self.target_similarity, self.sequence_start_pattern, self.sequence_end_pattern, self.merge_method, self.num_letters)
 
         # There is a sequence to restore from
         else:
@@ -348,7 +453,7 @@ class SequenceDatabase:
 # Load a database of sequences for execution
 class ExecutionPolicy_IterDatabase:
 
-    def __init__(self, seq_database_path: str, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, max_samples = configuration.max_samples):
+    def __init__(self, seq_database_path: str, execs_per_sample: int, start_sample_idx: int = 0, start_execution_idx: int = 0, max_samples: int = 0):
 
         self.seq_database = SequenceDatabase(seq_database_path, start_sample_idx)
         self.executions_per_sample = execs_per_sample
@@ -396,7 +501,6 @@ def file_open(path: str):
         return list_of_sequences
 
 # DEPRECATED POLICY!
-
 #def open_hdf_sequence_database(path: str):
 #    pd.read_hdf(path).Sequences.values
 #
@@ -430,10 +534,25 @@ def load_execution_policy(execution_policy: str, database_reader = file_open):
 
     match execution_policy:
         case 'load_database':
-            return ExecutionPolicy_IterDatabase(configuration.seq_database_path, configuration.executions_per_sample, configuration.start_from_idx, configuration.start_from_execution_idx)
+            return ExecutionPolicy_IterDatabase(seq_database_path = configuration.seq_database_path,
+                                                execs_per_sample = configuration.executions_per_sample,
+                                                start_sample_idx = configuration.start_from_idx,
+                                                start_execution_idx = configuration.start_from_execution_idx,
+                                                max_samples = configuration.max_samples)
         case 'seq_random_equal_size':
-            return ExecutionPolicy_EqualSizeSeq(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.executions_per_sample, configuration.start_from_idx, configuration.start_from_execution_idx, configuration.minimal_similarity_percentage , configuration.sequence_end_pattern, configuration.merge_method, configuration.num_letters)
-        #case 'seq_max_similarity_equal_size':
-        #    return ExecutionPolicy_MaxSimilarity(configuration.seq_dictionary, configuration.initial_seq_size, configuration.seq_size_step, configuration.unique_samples_per_size, configuration.max_samples, configuration.samples_per_execution, configuration.executions_per_sample, configuration.start_from_idx)
+            return ExecutionPolicy_EqualSizeSeq(seq_dictionary = configuration.seq_dictionary,
+                                                seq_size = configuration.initial_seq_size,
+                                                seq_size_step = configuration.seq_size_step,
+                                                samples_per_size = configuration.unique_samples_per_size,
+                                                max_samples = configuration.max_samples,
+                                                seq_per_execution = configuration.samples_per_execution,
+                                                execs_per_sample = configuration.executions_per_sample,
+                                                start_sample_idx = configuration.start_from_idx,
+                                                start_execution_idx = configuration.start_from_execution_idx,
+                                                target_similarity = configuration.minimal_similarity_percentage,
+                                                seq_start = configuration.sequence_start_pattern,
+                                                seq_end = configuration.sequence_end_pattern,
+                                                merge_method = configuration.merge_method,
+                                                num_letters = configuration.num_letters)
         case _:
             raise Exception('Invalid execution poilicy')

@@ -269,7 +269,7 @@ def main():
             results = pd.concat([ results, pd.DataFrame(dict(SampleID=[current_sample], Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
             seq_input.append('-'.join(test_input))
 
-            # Save results in the disk and clear what is in memory (append)
+            # Save results in the disk and clear what is in memory (append method)
             if configuration.append_results == True and configuration.write_to_file_without_asking == True: # and (executions % save_results_frequency == 0)
                 results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, append=True, format='table', index=False, min_itemsize=75)
                 results.drop(results.index, inplace=True)
@@ -295,13 +295,11 @@ def main():
             previous_sample_idx = current_sample
             print("\n\n")
 
-
-
     # Save results in a specific format
     print('\n\n', results, sep='')
 
 # This should be removed or updated (append is always superior though)
-# Careful with the sequence update, since multiple executions might 
+# Careful with the sequence update, since multiple executions might save the same sequence multiple times
     if(ask_for_confirmation(configuration.write_to_file_without_asking) and configuration.append_results == False):
         results.to_hdf(configuration.result_path, 'Exec_results', complevel=9, format='table', index=False, min_itemsize=75)
         print('RESULTS SAVED!')
