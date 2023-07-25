@@ -4,6 +4,7 @@ import plotly.io
 import numpy as np
 from pandasql import sqldf
 import plotly.figure_factory as ff
+import scipy.optimize #scipy.optimize.curve_fit
 #plotly.io.renderers.default = 'chromium'
 
 class PAStarData:
@@ -86,8 +87,8 @@ class PAStarData:
 
         return means
 
-    def get_means(self):
-        means = means = self.database.groupby('Seq_size', as_index=False).mean(numeric_only=True)
+    def get_means(self, group_by='Seq_size'):
+        means = means = self.database.groupby(group_by, as_index=False).mean(numeric_only=True)
         means['threading'] = self.database.threading[0]
         means['threads'] = self.threads
 
@@ -149,11 +150,11 @@ class PAStarDataCollection:
 
         return pd.concat(dataframes, ignore_index=True).sort_values('threads')
 
-    def get_collection_means(self):
+    def get_collection_means(self, group_by='Seq_size'):
         dataframes = []
 
         for data in self.pastar_data:
-            dataframes.append(data.get_means().copy())
+            dataframes.append(data.get_means(group_by).copy())
 
         return pd.concat(dataframes, ignore_index=True).sort_values(['threads', 'Seq_size'])
 
@@ -224,7 +225,7 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
 
 
 
-    if graph_type == 'box' or graph_type == 'scatter':
+    '''if graph_type == 'box' or graph_type == 'scatter':
         # Add vertical line to help visualization
         x_input_unique = list(set(x_input))
         x_input_unique.sort() # Get the correct order after buiding the set with unique values
@@ -234,7 +235,7 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
         added_value = (x_input_unique[1]- x_input_unique[0])/2
 
         for x in x_input_unique:
-            fig.add_vline(x=x+added_value, line_width=1, line_dash="dash", line_color="grey")
+            fig.add_vline(x=x+added_value, line_width=1, line_dash="dash", line_color="grey")'''
 
     # Adding text
     fig.update_layout(
@@ -288,8 +289,8 @@ def build_graph(input, x_input, y_input, title='', legend_title=None, x_title=No
                 font=dict(color='red' if is_max_higher_similarity == False else 'black')
             )
 
-    #fig.show()
-    fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
+    fig.show()
+    #fig.write_image(f"./graphs/{file_name}.png", scale=3.0, width=1900, height=1000)
 
     print(f'Graph build: {file_name}')
 
@@ -373,6 +374,84 @@ def plot_helper(sequence_size, execution_data, set_name): #data_single, data_mul
 # Plotting
 
 # Conference
+
+# Seq 3
+
+data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3500-Seq_5-SizeSample_1-Step_50-Samples_70-Execs_4-TSim_99-threads_1-Trim_3-StochasticPos.hdf")
+data_multi_2 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3500-Seq_5-SizeSample_1-Step_50-Samples_70-Execs_4-TSim_99-threads_2-Trim_3-StochasticPos.hdf")
+data_multi_4 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3500-Seq_5-SizeSample_1-Step_50-Samples_70-Execs_4-TSim_99-threads_4-Trim_3-StochasticPos.hdf")
+data_multi_8 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3500-Seq_5-SizeSample_1-Step_50-Samples_70-Execs_4-TSim_99-threads_8-Trim_3-StochasticPos.hdf")
+data_multi_16 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_3500-Seq_5-SizeSample_1-Step_50-Samples_70-Execs_4-TSim_99-threads_16-Trim_3-StochasticPos.hdf")
+
+
+merged_info = PAStarDataCollection([data_single, data_multi_2, data_multi_4, data_multi_8, data_multi_16])
+
+# Check if the info is valid
+merged_info.validate_database()
+total_data = merged_info.get_merged_database()
+
+
+print(total_data)
+
+# Function to predict params
+def prediction_func(X, a, b, c, d, e, f):
+    seq_size = np.array(X[0])
+    threads = np.array(X[1])
+
+    #return a*seq_size**2 + b*seq_size + c*threads**2 + d*threads + 0
+    #return a**seq_size + b*seq_size**2 + c*seq_size + d*threads**2 + e*threads + 0
+    return a*seq_size**3 + b*seq_size**2 + c*seq_size + d*threads**3 + e*threads**2 + f*threads + 0
+
+# Calculate params
+params, opt = scipy.optimize.curve_fit(prediction_func, [total_data.Seq_size.values, total_data.threads.values], total_data.MaxRSS.values)
+print(params)
+
+# Prediction
+y = np.array(total_data.MaxRSS.values)
+y_pred = prediction_func([total_data.Seq_size.values, total_data.threads.values], params[0], params[1], params[2], params[3], params[4], params[5])
+sample_id = np.array(total_data.index)
+sample_id = np.concatenate([sample_id, sample_id])
+data_type = ['actual value']*len(y) + ['predicted value']*len(y_pred)
+print(y_pred, y, len(y_pred), len(sample_id))
+print(f'MSE: {(np.sum(y-y_pred)**2) / len(y):.20f}')
+
+build_graph(total_data, total_data.SampleID, y_pred, f'Experimental', None, 'SampleIndex', 'Memory used', color=total_data.threading, graph_type='line', file_name=f'Experiment')
+build_graph(total_data, total_data.SampleID, y, f'Experimental', None, 'SampleIndex', 'Memory used', color=total_data.threading, graph_type='line', file_name=f'Experiment')
+build_graph(total_data, sample_id, np.concatenate([y, y_pred]), f'Experimental', None, 'SampleIndex', 'Memory used', color=data_type, graph_type='line', file_name=f'Experiment')
+
+# ----------
+
+total_data_copy = total_data.copy()
+total_data_copy['MaxRSS'] = y_pred
+total_data_copy['DataType'] = 'Prediction'
+total_data['DataType'] = 'Real'
+
+total_data = pd.concat([total_data, total_data_copy], ignore_index=False)
+print(total_data)
+build_graph(total_data, total_data.SampleID, total_data.MaxRSS, f'Experimental', None, 'SampleIndex', 'Memory used', color=total_data.DataType, graph_type='scatter', file_name=f'Experiment')
+
+# -----------
+
+total_data_averages = merged_info.get_collection_means(group_by=['SampleID', 'threads'])
+print(total_data_averages)
+
+build_graph(total_data_averages, total_data_averages.SampleID, total_data_averages.MaxRSS, f'Experimental', None, 'SampleIndex', 'Memory used', color=total_data_averages.threading, graph_type='line', file_name=f'Experiment')
+build_graph(total_data_averages, y, [y, y_pred], f'Experimental', None, 'Real', 'Predicted', color=None, graph_type='scatter', file_name=f'Experiment')
+
+
+fig = px.scatter_3d(x=total_data.Seq_size, y=total_data.threads, z=total_data.MaxRSS, color=total_data.DataType)
+fig.update_traces(marker_size = 3)
+fig.show()
+
+build_graph(total_data, total_data.index, total_data.MaxRSS, f'Experimental', None, 'SampleIndex', 'Memory used', color=total_data.DataType, graph_type='line', file_name=f'Experiment')
+
+
+
+#plot_helper(3, [data_single, data_multi_2, data_multi_4, data_multi_8, data_multi_16], set_name='Alba')
+
+
+
+'''
 # Seq 3
 
 data_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_2500-Seq_5-SizeSample_1-Step_500-Samples_5-Execs_3-threads_1-Trim_3-Alba.hdf")
@@ -441,12 +520,4 @@ data_multi_8 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_10000-Seq_5-Siz
 data_multi_16 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_10000-Seq_5-SizeSample_15-Step_500-Samples_300-Execs_1-threads_16-Trim_5-HighVariance.hdf")
 
 plot_helper(5, [data_single, data_multi_8, data_multi_16], set_name='HighVarianceSimilarilty')
-
-
-
-## Extra
-#data_extra_single = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_25000-Seq_5-SizeSample_1-Step_250-Samples_100-Execs_5-threads_1-WSCAD.hdf")
-#data_extra_8 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_25000-Seq_5-SizeSample_1-Step_250-Samples_100-Execs_5-threads_8-WSCAD.hdf")
-#data_extra_16 = PAStarData("./data/SeqResults-SeqDatabase-MaxSize_25000-Seq_5-SizeSample_1-Step_250-Samples_100-Execs_5-threads_16-WSCAD.hdf")
-#
-#plot_helper(5, [data_extra_single, data_extra_8, data_extra_16])
+'''

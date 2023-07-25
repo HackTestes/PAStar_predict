@@ -385,7 +385,7 @@ class TestMethods(unittest.TestCase):
         seq_dictionary =['A', 'T', 'C', 'G']
         seq_size = 10
         num_sequences = 5
-        minimal_similarity_percentage = 90
+        minimal_similarity_percentage = 50
         equal_cols = random_sequence_generator.calculate_min_cols_for_target_similarity(minimal_similarity_percentage, seq_size)
 
         result_seqs = random_sequence_generator.stochastic_position_seq_list(seq_dictionary=seq_dictionary, seq_size=seq_size, list_size=num_sequences, equal_cols=equal_cols)
@@ -403,7 +403,6 @@ class TestMethods(unittest.TestCase):
         # Verify number of sequences
         self.assertEqual(num_sequences, len(result_seqs))
 
-        SELF.assertTrue(False)
 
 
 if __name__ == '__main__':

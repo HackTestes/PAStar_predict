@@ -168,8 +168,13 @@ def update_timeout(tries):
 
 def main():
 
-    print(f'Seq-> Max size: {configuration.max_size} \tSamples:{configuration.max_samples} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per size: {configuration.unique_samples_per_size}\n')
+    print(f'Seq-> Max size: {configuration.max_size} \tSamples:{configuration.max_samples} \tBuckets: {(configuration.max_samples/configuration.unique_samples_per_size)} \tNumber of sequences: {configuration.samples_per_execution} \tSamples per size: {configuration.unique_samples_per_size}')
+    print(f'Min similarity: {configuration.minimal_similarity_percentage}%')
+    print(f'Sequence start pattern: {configuration.sequence_start_pattern} \tSequence end pattern: {configuration.sequence_end_pattern}')
+    print('')
+
     print(f'Command:{configuration.command} \nDatabase path: {configuration.seq_database_path} \nResults path: {configuration.result_path}\n')
+
     print(f'Execution policy: {configuration.execution_policy}')
     print(f'Restore execution: {configuration.restore_execution}')
     print(f'Write to files without asking: {configuration.write_to_file_without_asking}')
@@ -264,6 +269,7 @@ def main():
             # Misc (I don1t know the meaning of this)
             g_score = pastar_get_g_score(result['stdout'])
 
+            print(f'Threads: {configuration.threads}')
             print(f"Nodes searched: { node_info } \tMaxRSS: {max_rss} \tG: {g_score} \tSimilarity: {similarity} \tExecution time: {[heuristic_time, exec_time]} \tInput size: {len(test_input[0])} \tSeq qtd: {len(test_input)} \tExit code: {result['exit_code']} \tTries: {tries}")
 
             results = pd.concat([ results, pd.DataFrame(dict(SampleID=[current_sample], Nodes=[node_info], MaxRSS=[max_rss], Seq_qtd=[len(test_input)], Seq_size=[len(test_input[0])], Execution_time=[exec_time], Heuristic_time=[heuristic_time], Similarity=[similarity], Score=[score], G_score=[g_score])) ], ignore_index=True)
@@ -297,6 +303,8 @@ def main():
 
     # Save results in a specific format
     print('\n\n', results, sep='')
+
+
 
 # This should be removed or updated (append is always superior though)
 # Careful with the sequence update, since multiple executions might save the same sequence multiple times
